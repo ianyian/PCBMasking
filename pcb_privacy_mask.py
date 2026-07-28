@@ -21,7 +21,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
+
+# Help pyzbar/pylibdmtx find Homebrew-installed zbar/libdmtx on macOS
+# (ctypes reads DYLD_LIBRARY_PATH at lookup time, so setting it here works).
+if sys.platform == "darwin":
+    for _p in ("/opt/homebrew/lib", "/usr/local/lib"):
+        if os.path.isdir(_p) and _p not in os.environ.get("DYLD_LIBRARY_PATH", ""):
+            os.environ["DYLD_LIBRARY_PATH"] = (
+                _p + ":" + os.environ.get("DYLD_LIBRARY_PATH", ""))
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -50,6 +59,12 @@ except Exception:
     HAS_DMTX = False
 
 HAS_CV_BARCODE = hasattr(cv2, "barcode")
+
+try:
+    import zxingcpp
+    HAS_ZXING = True
+except Exception:
+    HAS_ZXING = False
 
 try:
     import easyocr
@@ -115,6 +130,34 @@ def detect_datamatrix(img, timeout_ms=3000) -> list:
         # pylibdmtx uses a bottom-left origin
         regions.append(Region("datamatrix", "pylibdmtx",
                               (x, h - y - hh, x + w, h - y), 1.0, True))
+    return regions
+
+
+def detect_zxing(img) -> list:
+    """QR + DataMatrix + 1-D barcodes via zxing-cpp (pip-only, no system libs).
+    Decoded content is proof the region is sensitive."""
+    regions = []
+    if not HAS_ZXING:
+        return regions
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+    try:
+        results = zxingcpp.read_barcodes(gray)
+    except Exception:
+        return regions
+    for r in results:
+        p = r.position
+        xs = [p.top_left.x, p.top_right.x, p.bottom_left.x, p.bottom_right.x]
+        ys = [p.top_left.y, p.top_right.y, p.bottom_left.y, p.bottom_right.y]
+        fmt = str(r.format).lower()
+        if "qr" in fmt:
+            label = "qrcode"
+        elif "matrix" in fmt or "aztec" in fmt:
+            label = "datamatrix"
+        else:
+            label = "barcode"
+        regions.append(Region(label, "zxing-cpp",
+                              (int(min(xs)), int(min(ys)),
+                               int(max(xs)), int(max(ys))), 1.0, True))
     return regions
 
 
@@ -385,6 +428,7 @@ class PrivacyMasker:
 
     def active_detectors(self) -> list:
         active = ["cv2.QRCodeDetector", "gradient-barcode", "white-label", "config-roi"]
+        if HAS_ZXING: active.append("zxing-cpp")
         if HAS_PYZBAR: active.append("pyzbar")
         if HAS_DMTX: active.append("pylibdmtx")
         if HAS_CV_BARCODE: active.append("cv2.barcode")
@@ -395,6 +439,7 @@ class PrivacyMasker:
 
     def detect_all(self, img, board_type: str) -> list:
         regions = []
+        regions += detect_zxing(img)
         regions += detect_pyzbar(img)
         regions += detect_datamatrix(img)
         regions += detect_cv_qr(img)
@@ -412,6 +457,8 @@ class PrivacyMasker:
 
     def verify(self, masked_img) -> bool:
         """Fail-closed verification: nothing sensitive may survive in the output."""
+        if detect_zxing(masked_img):
+            return False
         if detect_pyzbar(masked_img):
             return False
         if HAS_DMTX and detect_datamatrix(masked_img, timeout_ms=1500):

@@ -3,9 +3,15 @@ opencv-contrib-python>=4.8
 numpy
 pyyaml
 
-# Barcode / matrix-code decoders (strongly recommended)
-pyzbar          # needs system zbar:  brew install zbar
-pylibdmtx       # needs system dmtx:  brew install libdmtx
+# Barcode / matrix-code decoder — pip-only, no system libraries needed.
+# Decodes QR, DataMatrix, Aztec, and all common 1-D formats.
+# (Use zxing-cpp==2.2.0 on Python 3.9; latest needs Python >= 3.10.)
+zxing-cpp==2.2.0
+
+# Optional extra decoders — only if the system libs are available
+# (brew/apt install zbar libdmtx); the pipeline works fine without them:
+# pyzbar
+# pylibdmtx
 
 # Text detection (choose one; EasyOCR is easiest to install)
 easyocr
