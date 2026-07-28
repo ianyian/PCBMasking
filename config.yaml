@@ -1,0 +1,25 @@
+# PCB privacy masking configuration
+mask_style: fill          # fill (recommended for compliance) | inpaint
+padding_px: 12            # extra pixels masked around every detection
+mask_white_labels: true   # mask all bright label blobs (barcode/serial labels)
+
+# Text detection: put frozen_east_text_detection.pb here to use EAST,
+# otherwise EasyOCR is used if installed (models cached offline after 1st run).
+east_model_path: models/frozen_east_text_detection.pb
+text_conf: 0.5
+use_easyocr: true
+
+# Logo detection via template matching: put cropped logo images in this folder.
+logo_template_dir: templates/logos
+logo_threshold: 0.75
+
+# Per-board-type fixed ROIs — highest-precision compliance tool.
+# Logo/serial positions are fixed per board design, so list them here.
+board_types:
+  demo_board:
+    rois:
+      - {label: logo,   bbox: [0, 0, 10, 10]}   # example placeholder
+  # BOARD_A123:
+  #   rois:
+  #     - {label: logo,   bbox: [1200, 40, 1450, 160]}
+  #     - {label: serial, bbox: [80, 900, 420, 960]}

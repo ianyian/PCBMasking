@@ -1,0 +1,14 @@
+# Core (required)
+opencv-contrib-python>=4.8
+numpy
+pyyaml
+
+# Barcode / matrix-code decoders (strongly recommended)
+pyzbar          # needs system zbar:  brew install zbar
+pylibdmtx       # needs system dmtx:  brew install libdmtx
+
+# Text detection (choose one; EasyOCR is easiest to install)
+easyocr
+
+# Test-image generation only
+qrcode

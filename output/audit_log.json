@@ -1,0 +1,264 @@
+[
+  {
+    "input_file": "testdata/raw/demo_board_01.png",
+    "input_sha256": "40d71da723f195e92c163ef37dc9d2b4579b2314939a896ae46f90d3fae955c2",
+    "output_file": "output/masked/demo_board_01.png",
+    "output_sha256": "eef464b3fc92c8ad7ddca13507ee3e27675b459e6bb5eca483b6c8729ff3cba8",
+    "pipeline_version": "1.0.0",
+    "timestamp": "2026-07-29T01:23:57",
+    "board_type": "demo_board",
+    "detectors_active": [
+      "cv2.QRCodeDetector",
+      "gradient-barcode",
+      "white-label",
+      "config-roi",
+      "cv2.barcode",
+      "logo-template"
+    ],
+    "regions": [
+      {
+        "label": "logo",
+        "source": "config",
+        "bbox": [
+          0,
+          0,
+          10,
+          10
+        ],
+        "confidence": 1.0,
+        "decoded": false
+      },
+      {
+        "label": "logo",
+        "source": "template:acme",
+        "bbox": [
+          557,
+          818,
+          703,
+          892
+        ],
+        "confidence": 0.9999935030937195,
+        "decoded": false
+      },
+      {
+        "label": "qrcode",
+        "source": "cv2.QRCodeDetector",
+        "bbox": [
+          1032,
+          72,
+          1168,
+          208
+        ],
+        "confidence": 0.9,
+        "decoded": false
+      },
+      {
+        "label": "label",
+        "source": "white-label",
+        "bbox": [
+          560,
+          820,
+          701,
+          891
+        ],
+        "confidence": 0.6,
+        "decoded": false
+      },
+      {
+        "label": "label",
+        "source": "white-label",
+        "bbox": [
+          81,
+          202,
+          390,
+          220
+        ],
+        "confidence": 0.6,
+        "decoded": false
+      },
+      {
+        "label": "label",
+        "source": "white-label",
+        "bbox": [
+          1020,
+          60,
+          1180,
+          220
+        ],
+        "confidence": 0.6,
+        "decoded": false
+      },
+      {
+        "label": "label",
+        "source": "white-label",
+        "bbox": [
+          70,
+          50,
+          351,
+          151
+        ],
+        "confidence": 0.6,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          1218,
+          863,
+          1280,
+          899
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          1183,
+          810,
+          1244,
+          845
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          1003,
+          806,
+          1054,
+          829
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          74,
+          724,
+          477,
+          960
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          910,
+          594,
+          1084,
+          617
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          712,
+          567,
+          763,
+          590
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          176,
+          554,
+          265,
+          584
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          720,
+          521,
+          808,
+          544
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          141,
+          313,
+          395,
+          448
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          838,
+          84,
+          894,
+          116
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          519,
+          27,
+          593,
+          40
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          374,
+          15,
+          477,
+          28
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      },
+      {
+        "label": "barcode",
+        "source": "gradient",
+        "bbox": [
+          624,
+          9,
+          703,
+          55
+        ],
+        "confidence": 0.5,
+        "decoded": false
+      }
+    ],
+    "verification_passed": true,
+    "quarantined": false,
+    "notes": ""
+  }
+]
