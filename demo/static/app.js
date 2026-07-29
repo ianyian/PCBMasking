@@ -88,8 +88,8 @@ let cycle = 0;
 /* ---------------- clock ---------------- */
 
 function tickClock() {
-  $("clock").textContent = new Date().toLocaleString(undefined, {
-    hour12: false,
+  $("clock").textContent = new Date().toLocaleString("en-US", {
+    hour12: true,
   });
 }
 setInterval(tickClock, 1000);
@@ -131,10 +131,9 @@ function addCopyButton(entry, text) {
 }
 
 /* Insert a timestamped entry at the top of the action bar; entries flow
- * downward (newest first), all in solid color, oldest dropped off the
- * bottom past MAX_ACTIONS. Format: time [SN] message. Kinds: "begin"
- * (gold edge) marks a task starting, "alert" (red edge) a blink warning,
- * default (navy edge) a completed action. */
+ * downward (newest first), oldest dropped off the bottom past MAX_ACTIONS.
+ * Format: time [SN] message. All entries are neutral navy; only the final
+ * result entry is colored — kind "pass" (green) or "fail" (red). */
 function logAction(sn, msg, kind = "") {
   const list = $("actionList");
   const e = document.createElement("div");
@@ -175,10 +174,6 @@ function addReport(ann, pct) {
 /* ---------------- last-hour yield & defect trend chart ---------------- */
 
 const WINDOW_MS = 60 * 60 * 1000; // chart always shows the last hour
-const BUCKET_MS = 5 * 60 * 1000;  // 12 buckets of 5 minutes
-const N_BUCKETS = WINDOW_MS / BUCKET_MS;
-const DEFECT_CODES = ["missing_hole", "mouse_bite", "open_circuit",
-                      "short", "spur", "spurious_copper"];
 const DEFECT_COLORS = {
   missing_hole: "#ef6461", mouse_bite: "#f2a541", open_circuit: "#5b8dd9",
   short: "#9b5de5", spur: "#00b4a0", spurious_copper: "#c98bdb",
@@ -191,6 +186,9 @@ const DEFECT_SHORT = {
 const history = []; // {t, pass, codes[]} per finished board, last hour kept
 let trendChart = null;
 
+/* Pareto chart: defect-count bars sorted descending + cumulative-% line.
+ * Yield is NOT plotted here — it is the big number above the chart
+ * (pass boards / total boards over the last hour). */
 function initChart() {
   if (typeof Chart === "undefined") return; // vendor bundle missing — skip
   const AXIS = "#8a97a8"; // neutral mid-gray, readable on light and dark
@@ -199,14 +197,11 @@ function initChart() {
     data: {
       labels: [],
       datasets: [
-        ...DEFECT_CODES.map((c) => ({
-          label: DEFECT_SHORT[c], data: [], backgroundColor: DEFECT_COLORS[c],
-          stack: "defects", yAxisID: "y",
-        })),
+        { label: "defects", data: [], backgroundColor: [], yAxisID: "y" },
         {
-          type: "line", label: "yield %", data: [], yAxisID: "y1",
-          borderColor: "#35c477", backgroundColor: "#35c477",
-          borderWidth: 2, pointRadius: 2, tension: 0.25, spanGaps: true,
+          type: "line", label: "cumulative %", data: [], yAxisID: "y1",
+          borderColor: "#c0392b", backgroundColor: "#c0392b",
+          borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", tension: 0,
         },
       ],
     },
@@ -214,18 +209,14 @@ function initChart() {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
-      plugins: {
-        legend: {
-          labels: { color: AXIS, boxWidth: 8, padding: 5, font: { size: 9 } },
-        },
-      },
+      plugins: { legend: { display: false } },
       scales: {
         x: {
-          stacked: true, grid: { display: false },
+          grid: { display: false },
           ticks: { color: AXIS, font: { size: 8 }, maxRotation: 0 },
         },
         y: {
-          stacked: true, beginAtZero: true,
+          beginAtZero: true,
           ticks: { color: AXIS, font: { size: 8 }, precision: 0 },
           grid: { color: "rgba(138, 151, 168, .22)" },
         },
@@ -250,34 +241,45 @@ function recordResult(ann) {
 }
 
 function updateChart() {
-  if (!trendChart) return;
   const now = Date.now();
   const start = now - WINDOW_MS;
   while (history.length && history[0].t < start) history.shift();
 
-  const labels = [];
-  const counts = DEFECT_CODES.map(() => new Array(N_BUCKETS).fill(0));
-  const pass = new Array(N_BUCKETS).fill(0);
-  const total = new Array(N_BUCKETS).fill(0);
-  for (let i = 0; i < N_BUCKETS; i++) {
-    labels.push(new Date(start + i * BUCKET_MS).toLocaleTimeString(
-      undefined, { hour12: false, hour: "2-digit", minute: "2-digit" }));
+  // big-number yield: total pass boards / total boards, last hour
+  const total = history.length;
+  const passCnt = history.filter((r) => r.pass).length;
+  const yv = $("yieldValue");
+  const ys = $("yieldSub");
+  if (total) {
+    const pct = (100 * passCnt) / total;
+    yv.textContent = pct.toFixed(1) + " %";
+    yv.classList.toggle("pass", pct >= 90);
+    yv.classList.toggle("fail", pct < 90);
+    ys.textContent = `${passCnt} pass / ${total} boards · target > 90 %`;
+  } else {
+    yv.textContent = "—";
+    yv.classList.remove("pass", "fail");
+    ys.textContent = "no boards inspected in the last hour";
   }
+
+  if (!trendChart) return;
+  // Pareto: per-code defect counts, sorted descending, cumulative-% line
+  const counts = {};
   for (const r of history) {
-    const b = Math.min(N_BUCKETS - 1, Math.floor((r.t - start) / BUCKET_MS));
-    total[b]++;
-    if (r.pass) pass[b]++;
-    for (const c of r.codes) {
-      const k = DEFECT_CODES.indexOf(c);
-      if (k >= 0) counts[k][b]++;
-    }
+    for (const c of r.codes) counts[c] = (counts[c] || 0) + 1;
   }
-  trendChart.data.labels = labels;
-  DEFECT_CODES.forEach((c, k) => {
-    trendChart.data.datasets[k].data = counts[k];
+  const order = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const totalDef = order.reduce((s, c) => s + counts[c], 0);
+  let run = 0;
+  const cum = order.map((c) => {
+    run += counts[c];
+    return Math.round((1000 * run) / totalDef) / 10;
   });
-  trendChart.data.datasets[DEFECT_CODES.length].data =
-    total.map((t, i) => (t ? Math.round((1000 * pass[i]) / t) / 10 : null));
+  trendChart.data.labels = order.map((c) => DEFECT_SHORT[c] || c);
+  trendChart.data.datasets[0].data = order.map((c) => counts[c]);
+  trendChart.data.datasets[0].backgroundColor =
+    order.map((c) => DEFECT_COLORS[c] || "#5b8dd9");
+  trendChart.data.datasets[1].data = cum;
   trendChart.update();
 }
 
@@ -435,9 +437,11 @@ async function blinkOverlay(p, drawPlain, drawOverlay) {
 
 /* ---------------- info renderers ---------------- */
 
+/* 12-hour time with milliseconds, e.g. "9:49:01.804 AM" */
 const fmtTime = (d) =>
-  d.toLocaleTimeString(undefined, { hour12: false }) +
-  "." + String(d.getMilliseconds()).padStart(3, "0");
+  d.toLocaleTimeString("en-US", { hour12: true }).replace(
+    /(:\d\d)(\s?[AP]M)/i,
+    (m, sec, ap) => `${sec}.${String(d.getMilliseconds()).padStart(3, "0")}${ap}`);
 
 function setProcessing(p, msg) {
   p.info.innerHTML = `<p class="proc">${msg}</p>`;
@@ -466,7 +470,7 @@ function step1Info(p, ann, start) {
         <span class="k">File:</span> dataset/raw/${ann.sn}.png<br>
         <span class="k">Image size:</span> ${ann.width} × ${ann.height} px<br>
         <span class="k">Inspection start:</span><br><b>${start.toLocaleString(
-          undefined, { hour12: false })}</b></p>
+          "en-US", { hour12: true })}</b></p>
      <p class="k">Board image loaded from the demo sample dataset (synthetic
         boards — no line camera attached in demo mode). Forwarding to
         sensitive-object detection…</p>`;
@@ -530,7 +534,7 @@ async function runBoard(idx) {
     `Board ${idx + 1} / ${boards.length} · cycle ${cycle + 1}`;
 
   // new board: every panel resets to blank first
-  logAction(sn, `new inspection cycle — all step panels reset`, "begin");
+  logAction(sn, `new inspection cycle — all step panels reset`);
   panels.forEach(clearPanel);
   $("stamp1").textContent = "";
   panels.forEach((p) => (p.sn.textContent = sn));
@@ -543,7 +547,7 @@ async function runBoard(idx) {
   /* ---- STEP 1: inspection / load ---- */
   status.textContent = `Step 1 — loading board ${sn}`;
   const start = new Date();
-  logAction(sn, `step 1 started — loading dataset/raw/${sn}.png`, "begin");
+  logAction(sn, `step 1 started — loading dataset/raw/${sn}.png`);
   await blinkFrame(panels[0]);
   drawBase(panels[0], img);
   $("stamp1").textContent = `${sn} · start ${fmtTime(start)}`;
@@ -553,7 +557,7 @@ async function runBoard(idx) {
 
   /* ---- STEP 2: sensitive-object detection ---- */
   status.textContent = `Step 2 — detecting sensitive objects on ${sn}`;
-  logAction(sn, `step 2 started — scanning for codes, texts, logos`, "begin");
+  logAction(sn, `step 2 started — scanning for codes, texts, logos`);
   await blinkFrame(panels[1]);
   drawBase(panels[1], img);
   setProcessing(panels[1], "Scanning for barcodes, QR codes, texts, logos");
@@ -561,7 +565,7 @@ async function runBoard(idx) {
   await sleep(PROCESS_MS);
   const ms2 = performance.now() - t2;
   logAction(sn, `detection complete — <b>${ann.labels.length}</b> object(s) in ${(ms2 / 1000).toFixed(2)} s`);
-  logAction(sn, `blinking red detection boxes 3×`, "alert");
+  logAction(sn, `blinking red detection boxes 3×`);
   await blinkOverlay(
     panels[1],
     () => drawBase(panels[1], img),
@@ -573,14 +577,14 @@ async function runBoard(idx) {
 
   /* ---- STEP 3: masking ---- */
   status.textContent = `Step 3 — masking sensitive areas on ${sn}`;
-  logAction(sn, `step 3 started — masking ${ann.labels.length} region(s)`, "begin");
+  logAction(sn, `step 3 started — masking ${ann.labels.length} region(s)`);
   await blinkFrame(panels[2]);
   drawDetectionBoxes(panels[2], img, ann.labels);
   setProcessing(panels[2], "Applying irreversible black fill");
   const t3 = performance.now();
   await sleep(PROCESS_MS);
   const ms3 = performance.now() - t3;
-  logAction(sn, `blinking masked areas 3×`, "alert");
+  logAction(sn, `blinking masked areas 3×`);
   await blinkOverlay(
     panels[2],
     () => drawDetectionBoxes(panels[2], img, ann.labels),
@@ -593,7 +597,7 @@ async function runBoard(idx) {
 
   /* ---- STEP 4: defect detection ---- */
   status.textContent = `Step 4 — defect detection on ${sn}`;
-  logAction(sn, `step 4 started — golden-board defect compare`, "begin");
+  logAction(sn, `step 4 started — golden-board defect compare`);
   await blinkFrame(panels[3]);
   drawMasks(panels[3], img, ann.labels);
   setProcessing(panels[3], "Comparing against golden board, locating defects");
@@ -603,7 +607,7 @@ async function runBoard(idx) {
   if (ann.defects.length) {
     logAction(sn, `defect scan — <b>${ann.defects.length}</b> defect(s): ` +
               ann.defects.map((d) => d.code).join(", "));
-    logAction(sn, `blinking yellow defect marks 3×`, "alert");
+    logAction(sn, `blinking yellow defect marks 3×`);
   } else {
     logAction(sn, `defect scan — no defect found`);
   }
@@ -616,8 +620,7 @@ async function runBoard(idx) {
   logAction(sn, `step 4 finished — verdict ` +
             (ann.defects.length ? `<b>FAIL</b>` : `<b>PASS</b>`));
   logAction(sn, `flashing step-4 header ` +
-            (ann.defects.length ? `red (FAIL)` : `green (PASS)`) + ` 3×`,
-            "alert");
+            (ann.defects.length ? `red (FAIL)` : `green (PASS)`) + ` 3×`);
   await flashVerdict(panels[3], ann.defects.length === 0);
   addReport(ann, (100 * area) / (ann.width * ann.height));
   markChipResult(sn, ann.defects.length === 0);
@@ -628,7 +631,10 @@ async function runBoard(idx) {
     `Board ${sn} complete — ` +
     (ann.defects.length ? `${ann.defects.length} defect(s) found` : "PASS") +
     ` · advancing queue`;
-  logAction(sn, `inspection complete — advancing queue`);
+  logAction(sn, `inspection complete — ` +
+            (ann.defects.length ? `<b>FAIL</b>` : `<b>PASS</b>`) +
+            ` · advancing queue`,
+            ann.defects.length ? "fail" : "pass");
   await sleep(800);
 }
 

@@ -72,13 +72,16 @@ above and browse to `http://<server-ip>:8000` from the display machine.
   board — objects masked, masked share, defect codes, and a big verdict,
   green **PASS** / red **FAIL**, newest on top. Page 2 is the **Action
   Log**: a timestamped history of every action in the format
-  `HH:MM:SS.mmm [PCB-006] message`, newest at the top.
-- **Last-hour trend chart (right edge, bottom ~30%)** — a Chart.js combo
-  chart that always shows the last 60 minutes in 5-minute buckets: stacked
-  bars count defects per HRIPCB code, the green line is the yield %
-  (right axis). It refreshes after every board and slides forward once a
-  minute, so operators see the recent result trend at a glance. Chart.js is
-  bundled locally (`demo/static/vendor/chart.umd.js`) — no internet needed.
+  `H:MM:SS.mmm AM [PCB-006] message` (12-hour clock), newest at the top.
+  Log entries are neutral navy — only the final result entry per board is
+  colored, green for a good board and red for a bad one.
+- **Yield + defect Pareto (right edge, bottom ~30%)** — always covers the
+  last 60 minutes. The yield is a big number: total pass boards ÷ total
+  boards, green when ≥ 90 %, red below. Under it a Chart.js **Pareto
+  chart** shows defect counts per HRIPCB code as bars sorted largest-first
+  with the cumulative-% line on the right axis. Both refresh after every
+  board and the window slides forward once a minute. Chart.js is bundled
+  locally (`demo/static/vendor/chart.umd.js`) — no internet needed.
 - **Settings (gear button, top-right)** — a settings panel with an
   Appearance section (**dark mode** toggle — dark is the default; the choice
   is remembered across reloads) and a Documentation section with a

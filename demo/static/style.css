@@ -314,8 +314,9 @@ body {
   margin-right: 6px;
   color: var(--ink);
 }
-.ah-entry.ah-begin { border-left-color: var(--accent); }
-.ah-entry.ah-alert { border-left-color: var(--detect-red); }
+/* only the final result is colored: green = good board, red = bad board */
+.ah-entry.ah-pass { border-left-color: var(--pass-green); font-weight: 600; }
+.ah-entry.ah-fail { border-left-color: var(--detect-red); font-weight: 600; }
 
 /* ---------- footer ---------- */
 
@@ -418,8 +419,31 @@ body {
 /* ---------- last-hour trend chart (bottom ~30% of the right bar) ---------- */
 
 .chart-title { margin-top: 10px; }
+
+/* big-number yield KPI (pass boards / total boards, last hour) */
+.kpi {
+  flex: 0 0 auto;
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  text-align: center;
+  padding: 4px 6px 6px;
+  margin-bottom: 6px;
+}
+.kpi-label {
+  font-size: .65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.kpi-value { font-size: 2rem; font-weight: 800; line-height: 1.15; }
+.kpi-value.pass { color: var(--pass-green); }
+.kpi-value.fail { color: var(--detect-red); }
+.kpi-sub { font-size: .68rem; color: var(--muted); }
+
 .chart-box {
-  flex: 0 0 27%;
+  flex: 0 0 20%;
   min-height: 0;
   position: relative;            /* Chart.js responsive sizing anchor */
   background: var(--panel-bg);
