@@ -30,7 +30,7 @@ input is needed — the show loops through all 100 boards and then restarts.
 | 1 Inspection | raw board image, SN badge, start timestamp | panel frame blinks 3× |
 | 2 Object detection | red boxes on barcodes / QR / DataMatrix / serial texts / logos, feature count table | frame blinks 3×, red boxes blink 3× |
 | 3 Object masking | detected regions filled irreversible black (red outline), masked-area statistics | frame blinks 3×, masks blink 3× |
-| 4 Defect detection | yellow boxes on defects with code + location table, PASS / FAIL verdict | frame blinks 3×, yellow marks blink 3× |
+| 4 Defect detection | yellow boxes on defects with code + location table, PASS / FAIL verdict | frame blinks 3×, yellow marks blink 3×, then the Step 4 header flashes green (PASS) or red (FAIL) 3× and stays lit until the next board |
 
 Every step also dwells ≥ 2 s (`STEP_DWELL_MS` in `static/app.js`) so viewers
 can follow, and steps 2–4 show a simulated processing phase (`PROCESS_MS`).

@@ -190,6 +190,8 @@ function clearPanel(p) {
   p.sn.textContent = "—";
   p.info.innerHTML = '<p class="placeholder">Idle</p>';
   p.el.classList.remove("active", "frame-blink");
+  p.el.querySelector(".panel-head")
+      .classList.remove("verdict-pass", "verdict-fail");
 }
 
 /* ---------------- blink effects ---------------- */
@@ -202,6 +204,20 @@ async function blinkFrame(p) {
     await sleep(BLINK_OFF_MS);
   }
   p.el.classList.add("active");
+}
+
+/* Flash the step-4 header green (PASS) or red (FAIL) 3x, then keep it lit
+ * until the panel resets, so the verdict is visible from across the room. */
+async function flashVerdict(p, pass) {
+  const head = p.el.querySelector(".panel-head");
+  const cls = pass ? "verdict-pass" : "verdict-fail";
+  for (let i = 0; i < BLINK_COUNT; i++) {
+    head.classList.add(cls);
+    await sleep(BLINK_ON_MS);
+    head.classList.remove(cls);
+    await sleep(BLINK_OFF_MS);
+  }
+  head.classList.add(cls); // stay lit in the verdict color
 }
 
 /* Blink an overlay by alternating a plain redraw and the overlay redraw. */
@@ -397,6 +413,10 @@ async function runBoard(idx) {
   step4Info(panels[3], ann, ms4);
   logAction(sn, `step 4 finished — verdict ` +
             (ann.defects.length ? `<b>FAIL</b>` : `<b>PASS</b>`));
+  logAction(sn, `flashing step-4 header ` +
+            (ann.defects.length ? `red (FAIL)` : `green (PASS)`) + ` 3×`,
+            "alert");
+  await flashVerdict(panels[3], ann.defects.length === 0);
   addReport(ann, (100 * area) / (ann.width * ann.height));
   await sleep(STEP_DWELL_MS);
 
