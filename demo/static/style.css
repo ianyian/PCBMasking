@@ -7,10 +7,30 @@
   --accent: #d8a013;      /* attention gold for active-frame blink */
   --detect-red: #d81f26;
   --defect-yellow: #f5d000;
+  --pass-green: #0d7a3f;
   --bg: #f4f6f9;
   --panel-bg: #ffffff;
+  --box-bg: #eef1f5;      /* canvas well */
+  --bar-bg: #e8edf4;      /* action-log panel */
+  --thead: #e8edf4;
   --line: #cdd6e2;
   --text: #212a36;
+  --ink: #16345c;         /* navy-toned text accents */
+  --muted: #5a6b80;
+}
+
+body.dark {
+  --pass-green: #35c477;
+  --detect-red: #ff5a60;
+  --bg: #0f1520;
+  --panel-bg: #1a2330;
+  --box-bg: #0b1017;
+  --bar-bg: #151d2a;
+  --thead: #243247;
+  --line: #33415a;
+  --text: #dbe3ee;
+  --ink: #8fb4e8;
+  --muted: #93a4bb;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,7 +73,7 @@ body {
 
 .queue-wrap {
   flex: 0 0 auto;
-  background: #fff;
+  background: var(--panel-bg);
   border-bottom: 2px solid var(--navy);
   /* right padding keeps the queue clear of the action-log overlay */
   padding: 10px calc(20vw + 14px) 6px 18px;
@@ -100,7 +120,7 @@ body {
   order: -1;
 }
 .arrow-line { flex: 1; height: 4px; background: var(--navy); border-radius: 2px; }
-.arrow-label { font-size: .78rem; color: #5a6b80; white-space: nowrap; }
+.arrow-label { font-size: .78rem; color: var(--muted); white-space: nowrap; }
 
 /* ---------- 2x2 step grid ---------- */
 
@@ -168,7 +188,7 @@ body {
   position: relative;
   flex: 1 1 68%;
   min-width: 0;
-  background: #eef1f5;
+  background: var(--box-bg);
   border: 1px solid var(--line);
   border-radius: 5px;
   display: flex;
@@ -176,7 +196,7 @@ body {
   justify-content: center;
   overflow: hidden;
 }
-canvas { max-width: 100%; max-height: 100%; display: block; }
+canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
 .stamp {
   position: absolute;
   left: 8px;
@@ -198,11 +218,11 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   overflow: auto;
 }
 .info h4 {
-  color: var(--navy);
+  color: var(--ink);
   font-size: .82rem;
   text-transform: uppercase;
   letter-spacing: .6px;
-  border-bottom: 2px solid var(--navy);
+  border-bottom: 2px solid var(--ink);
   margin-bottom: 6px;
   padding-bottom: 2px;
 }
@@ -213,10 +233,10 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   text-align: left;
   font-size: .82rem;
 }
-.info th { background: #e8edf4; color: var(--navy); }
-.placeholder { color: #93a1b3; font-style: italic; }
+.info th { background: var(--thead); color: var(--ink); }
+.placeholder { color: var(--muted); font-style: italic; }
 .proc {
-  color: var(--navy);
+  color: var(--ink);
   font-weight: 600;
 }
 .proc::after {
@@ -228,9 +248,9 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   vertical-align: bottom;
 }
 @keyframes dots { from { content: ""; } }
-.badge-pass { color: #0d7a3f; font-weight: 800; }
+.badge-pass { color: var(--pass-green); font-weight: 800; }
 .badge-fail { color: var(--detect-red); font-weight: 800; }
-.k { color: #5a6b80; }
+.k { color: var(--muted); }
 
 /* ---------- transparent action-history overlay (right 20%) ---------- */
 
@@ -245,7 +265,7 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   display: flex;
   flex-direction: column;
   padding: 10px 12px 12px;
-  background: #e8edf4;
+  background: var(--bar-bg);
   border-left: 3px solid var(--navy);
 }
 .ah-title {
@@ -270,14 +290,14 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   overflow: hidden;
 }
 .ah-entry {
-  background: #ffffff;
+  background: var(--panel-bg);
   border: 1px solid var(--line);
   border-left: 4px solid var(--navy);
   border-radius: 3px;
   padding: 2px 8px;
   font-size: .78rem;
   line-height: 1.35;
-  color: var(--navy-dark);
+  color: var(--text);
   white-space: normal;
   word-break: break-word;
 }
@@ -285,7 +305,7 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   margin-right: 6px;
-  color: var(--navy);
+  color: var(--ink);
 }
 .ah-entry.ah-begin { border-left-color: var(--accent); }
 .ah-entry.ah-alert { border-left-color: var(--detect-red); }
@@ -302,3 +322,73 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   font-size: .86rem;
 }
 .counter { font-variant-numeric: tabular-nums; }
+
+/* ---------- settings (header) ---------- */
+
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.settings { position: relative; }
+.settings-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .45);
+  color: #fff;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.settings-btn:hover, .settings-btn:focus-visible {
+  background: rgba(255, 255, 255, .15);
+  outline: none;
+}
+.settings-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 200;
+  background: var(--panel-bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .9rem;
+  cursor: pointer;
+}
+
+/* ---------- report list (bottom ~30% of the right bar) ---------- */
+
+.rp-title { margin-top: 10px; }
+.rp-list {
+  flex: 0 0 30%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;   /* newest report at the top */
+  gap: 4px;
+  overflow: hidden;
+}
+.rp-entry {
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 9px;
+}
+.rp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rp-sn { font-weight: 800; font-size: .95rem; color: var(--ink); }
+.rp-verdict { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+.rp-verdict.pass { color: var(--pass-green); }
+.rp-verdict.fail { color: var(--detect-red); }
+.rp-detail { font-size: .76rem; color: var(--muted); line-height: 1.35; }
+.ah-entry .ah-sn { font-weight: 700; color: var(--ink); margin-right: 5px; }

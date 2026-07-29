@@ -30,6 +30,31 @@ const panels = [1, 2, 3, 4].map((n) => ({
 let boards = [];
 let cycle = 0;
 
+/* ---------------- settings / dark mode ---------------- */
+
+(function initSettings() {
+  const btn = $("settingsBtn");
+  const menu = $("settingsMenu");
+  const toggle = $("darkToggle");
+  const root = document.getElementById("app") || document.body;
+  let dark = false;
+  try { dark = localStorage.getItem("pcbdemo-dark") === "1"; } catch (e) {}
+  root.classList.toggle("dark", dark);
+  toggle.checked = dark;
+  btn.addEventListener("click", () => {
+    menu.hidden = !menu.hidden;
+  });
+  toggle.addEventListener("change", () => {
+    root.classList.toggle("dark", toggle.checked);
+    try {
+      localStorage.setItem("pcbdemo-dark", toggle.checked ? "1" : "0");
+    } catch (e) {}
+  });
+  document.addEventListener("click", (ev) => {
+    if (!menu.hidden && !ev.target.closest(".settings")) menu.hidden = true;
+  });
+})();
+
 /* ---------------- clock ---------------- */
 
 function tickClock() {
@@ -46,16 +71,41 @@ const MAX_ACTIONS = 22;
 
 /* Insert a timestamped entry at the top of the action bar; entries flow
  * downward (newest first), all in solid color, oldest dropped off the
- * bottom past MAX_ACTIONS. Kinds: "begin" (gold edge) marks a task
- * starting, "alert" (red edge) a blink warning, default (navy edge) a
- * completed action. */
-function logAction(msg, kind = "") {
+ * bottom past MAX_ACTIONS. Format: time [SN] message. Kinds: "begin"
+ * (gold edge) marks a task starting, "alert" (red edge) a blink warning,
+ * default (navy edge) a completed action. */
+function logAction(sn, msg, kind = "") {
   const list = $("actionList");
   const e = document.createElement("div");
   e.className = "ah-entry" + (kind ? " ah-" + kind : "");
-  e.innerHTML = `<span class="ah-time">${fmtTime(new Date())}</span>${msg}`;
+  e.innerHTML =
+    `<span class="ah-time">${fmtTime(new Date())}</span>` +
+    `<span class="ah-sn">[${sn}]</span> ${msg}`;
   list.insertBefore(e, list.firstChild);
   while (list.children.length > MAX_ACTIONS) list.removeChild(list.lastChild);
+}
+
+const MAX_REPORTS = 12;
+
+/* Append one per-board summary card to the REPORT area (newest on top):
+ * counts, masked share, defect codes, and a big green PASS / red FAIL. */
+function addReport(ann, pct) {
+  const list = $("reportList");
+  const e = document.createElement("div");
+  e.className = "rp-entry";
+  const fail = ann.defects.length > 0;
+  const detail =
+    `${ann.labels.length} sensitive object(s) masked (${pct.toFixed(1)} %)` +
+    (fail ? ` · defects: ${ann.defects.map((d) => d.code).join(", ")}`
+          : ` · no defect`) +
+    ` · ${fmtTime(new Date())}`;
+  e.innerHTML =
+    `<div class="rp-head"><span class="rp-sn">${ann.sn}</span>` +
+    `<span class="rp-verdict ${fail ? "fail" : "pass"}">` +
+    `${fail ? "FAIL" : "PASS"}</span></div>` +
+    `<div class="rp-detail">${detail}</div>`;
+  list.insertBefore(e, list.firstChild);
+  while (list.children.length > MAX_REPORTS) list.removeChild(list.lastChild);
 }
 
 /* ---------------- queue bar ---------------- */
@@ -262,8 +312,7 @@ async function runBoard(idx) {
     `Board ${idx + 1} / ${boards.length} · cycle ${cycle + 1}`;
 
   // new board: every panel resets to blank first
-  logAction(`<b>${sn}</b> — new inspection cycle, all step panels reset`,
-            "begin");
+  logAction(sn, `new inspection cycle — all step panels reset`, "begin");
   panels.forEach(clearPanel);
   $("stamp1").textContent = "";
   panels.forEach((p) => (p.sn.textContent = sn));
@@ -276,48 +325,44 @@ async function runBoard(idx) {
   /* ---- STEP 1: inspection / load ---- */
   status.textContent = `Step 1 — loading board ${sn}`;
   const start = new Date();
-  logAction(`Step 1 started — loading ${sn} from demo dataset ` +
-            `(dataset/raw/${sn}.png)`, "begin");
+  logAction(sn, `step 1 started — loading dataset/raw/${sn}.png`, "begin");
   await blinkFrame(panels[0]);
   drawBase(panels[0], img);
   $("stamp1").textContent = `${sn} · start ${fmtTime(start)}`;
   step1Info(panels[0], ann, start);
-  logAction(`Step 1 finished — image loaded, ${ann.width} × ${ann.height} px`);
+  logAction(sn, `step 1 finished — image loaded, ${ann.width} × ${ann.height} px`);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 2: sensitive-object detection ---- */
   status.textContent = `Step 2 — detecting sensitive objects on ${sn}`;
-  logAction(`Step 2 started — scanning ${sn} for barcodes, QR/DataMatrix ` +
-            `codes, serial texts, logos`, "begin");
+  logAction(sn, `step 2 started — scanning for codes, texts, logos`, "begin");
   await blinkFrame(panels[1]);
   drawBase(panels[1], img);
   setProcessing(panels[1], "Scanning for barcodes, QR codes, texts, logos");
   const t2 = performance.now();
   await sleep(PROCESS_MS);
   const ms2 = performance.now() - t2;
-  logAction(`Detection complete — <b>${ann.labels.length}</b> sensitive ` +
-            `object(s) found in ${(ms2 / 1000).toFixed(2)} s`);
-  logAction(`Blinking red boxes 3× to highlight detected areas`, "alert");
+  logAction(sn, `detection complete — <b>${ann.labels.length}</b> object(s) in ${(ms2 / 1000).toFixed(2)} s`);
+  logAction(sn, `blinking red detection boxes 3×`, "alert");
   await blinkOverlay(
     panels[1],
     () => drawBase(panels[1], img),
     () => drawDetectionBoxes(panels[1], img, ann.labels)
   );
   step2Info(panels[1], ann, ms2);
-  logAction(`Step 2 finished — results displayed`);
+  logAction(sn, `step 2 finished — results displayed`);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 3: masking ---- */
   status.textContent = `Step 3 — masking sensitive areas on ${sn}`;
-  logAction(`Step 3 started — masking ${ann.labels.length} sensitive ` +
-            `region(s) with irreversible black fill`, "begin");
+  logAction(sn, `step 3 started — masking ${ann.labels.length} region(s)`, "begin");
   await blinkFrame(panels[2]);
   drawDetectionBoxes(panels[2], img, ann.labels);
   setProcessing(panels[2], "Applying irreversible black fill");
   const t3 = performance.now();
   await sleep(PROCESS_MS);
   const ms3 = performance.now() - t3;
-  logAction(`Blinking masked areas 3× to confirm coverage`, "alert");
+  logAction(sn, `blinking masked areas 3×`, "alert");
   await blinkOverlay(
     panels[2],
     () => drawDetectionBoxes(panels[2], img, ann.labels),
@@ -325,15 +370,12 @@ async function runBoard(idx) {
   );
   const area = maskedArea(ann);
   step3Info(panels[2], ann, area, (100 * area) / (ann.width * ann.height), ms3);
-  logAction(`Step 3 finished — ${area.toLocaleString()} px² masked ` +
-            `(${((100 * area) / (ann.width * ann.height)).toFixed(2)} % of ` +
-            `board) in ${(ms3 / 1000).toFixed(2)} s`);
+  logAction(sn, `step 3 finished — ${((100 * area) / (ann.width * ann.height)).toFixed(1)} % of board masked in ${(ms3 / 1000).toFixed(2)} s`);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 4: defect detection ---- */
   status.textContent = `Step 4 — defect detection on ${sn}`;
-  logAction(`Step 4 started — comparing ${sn} against golden board for ` +
-            `defects`, "begin");
+  logAction(sn, `step 4 started — golden-board defect compare`, "begin");
   await blinkFrame(panels[3]);
   drawMasks(panels[3], img, ann.labels);
   setProcessing(panels[3], "Comparing against golden board, locating defects");
@@ -341,13 +383,11 @@ async function runBoard(idx) {
   await sleep(PROCESS_MS);
   const ms4 = performance.now() - t4;
   if (ann.defects.length) {
-    logAction(`Defect scan complete — <b>${ann.defects.length}</b> defect(s): ` +
-              ann.defects.map((d) => d.code).join(", ") +
-              ` (${(ms4 / 1000).toFixed(2)} s)`);
-    logAction(`Blinking yellow defect marks 3×`, "alert");
+    logAction(sn, `defect scan — <b>${ann.defects.length}</b> defect(s): ` +
+              ann.defects.map((d) => d.code).join(", "));
+    logAction(sn, `blinking yellow defect marks 3×`, "alert");
   } else {
-    logAction(`Defect scan complete — no defect found ` +
-              `(${(ms4 / 1000).toFixed(2)} s)`);
+    logAction(sn, `defect scan — no defect found`);
   }
   await blinkOverlay(
     panels[3],
@@ -355,17 +395,16 @@ async function runBoard(idx) {
     () => drawDefects(panels[3], img, ann.labels, ann.defects)
   );
   step4Info(panels[3], ann, ms4);
-  logAction(`Step 4 finished — verdict: ` +
-            (ann.defects.length
-              ? `<b>FAIL</b>, route to rework`
-              : `<b>PASS</b>, released`));
+  logAction(sn, `step 4 finished — verdict ` +
+            (ann.defects.length ? `<b>FAIL</b>` : `<b>PASS</b>`));
+  addReport(ann, (100 * area) / (ann.width * ann.height));
   await sleep(STEP_DWELL_MS);
 
   status.textContent =
     `Board ${sn} complete — ` +
     (ann.defects.length ? `${ann.defects.length} defect(s) found` : "PASS") +
     ` · advancing queue`;
-  logAction(`${sn} inspection complete — advancing preview queue to the left`);
+  logAction(sn, `inspection complete — advancing queue`);
   await sleep(800);
 }
 

@@ -14,7 +14,18 @@
     <span class="brand-mark">AOI</span>
     <span class="brand-text">PCB Privacy Masking &amp; Defect Inspection</span>
   </div>
-  <div class="clock" id="clock">--:--:--</div>
+  <div class="topbar-right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="settings">
+      <button id="settingsBtn" class="settings-btn" title="Settings"
+              aria-label="Settings">&#9881;</button>
+      <div class="settings-menu" id="settingsMenu" hidden>
+        <label class="settings-item">
+          <input type="checkbox" id="darkToggle"> Dark mode
+        </label>
+      </div>
+    </div>
+  </div>
 </header>
 
 <section class="queue-wrap">
@@ -85,6 +96,8 @@
 <aside class="action-bar" id="actionBar" aria-label="Action history">
   <div class="ah-title">ACTION LOG</div>
   <div class="ah-list" id="actionList"></div>
+  <div class="ah-title rp-title">REPORT</div>
+  <div class="rp-list" id="reportList"></div>
 </aside>
 
 <footer class="statusbar">

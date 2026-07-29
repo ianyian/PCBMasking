@@ -45,10 +45,14 @@ red = blink alert, navy = completed action.
 
 ## Dataset
 
-`generate_dataset.py` writes `demo/dataset/raw/PCB-001.png … PCB-100.png`
+The dataset is **generated once and committed to the repository** — every
+demo run uses the same fixed folder, so the source can be shown and
+cross-checked by anyone: `demo/dataset/raw/PCB-001.png … PCB-100.png`
 (1400×900) plus `demo/dataset/annotations.json` with ground-truth bounding
-boxes for every sensitive item and injected defect. Generation is seeded, so
-the dataset is reproducible; it is therefore not committed to git.
+boxes for every sensitive item and injected defect. The app only reads this
+folder; nothing is generated on the fly. `generate_dataset.py` exists solely
+to (re)build the folder deliberately — it is seeded, so a rebuild reproduces
+the identical dataset.
 
 Variance per board: 1–2 barcodes, 1–2 QR codes, optional DataMatrix,
 1–3 serial/lot texts, 1–2 company logos (4 styles), 0–5 defects.

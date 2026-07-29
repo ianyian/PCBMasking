@@ -23,14 +23,17 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 
 # install the demo's dependencies
 pip install -r demo/requirements.txt
-
-# generate the 100-board sample dataset (~1 minute)
-python demo/generate_dataset.py
 ```
 
-You should see `demo/dataset/raw/PCB-001.png … PCB-100.png` plus
-`demo/dataset/annotations.json` afterwards. The generator is seeded, so
-re-running it reproduces the identical dataset.
+The 100-board sample dataset is **already included in the repository** at
+`demo/dataset/raw/PCB-001.png … PCB-100.png` with its ground truth in
+`demo/dataset/annotations.json`. It was generated once and committed, so
+every demo run uses the identical fixed folder — you can point auditors at
+that path to cross-check the source images. Nothing is generated on the fly.
+
+(Only if you ever want to rebuild it deliberately:
+`python demo/generate_dataset.py` — the generator is seeded and reproduces
+the identical dataset.)
 
 ## 3. Start the demo
 
@@ -59,10 +62,16 @@ above and browse to `http://<server-ip>:8000` from the display machine.
 - **Four step panels** — each panel's frame blinks 3× when its step starts,
   detection boxes (red), masks (black) and defect marks (yellow) each blink
   3×, and every step pauses ~2 s so the audience can follow.
-- **Action log (right edge)** — a timestamped before/after history of every
-  action (step started / finished, counts, durations, verdicts). The newest
-  entry appears at the top and entries flow downward; the oldest drop off
-  the bottom.
+- **Action log (right edge, top ~70%)** — a timestamped before/after history
+  of every action in the format `HH:MM:SS.mmm [PCB-006] message`, so entries
+  group by board serial at a glance. The newest entry appears at the top and
+  entries flow downward; the oldest drop off the bottom.
+- **Report (right edge, bottom ~30%)** — one summary card per finished
+  board: objects masked, masked share, defect codes, and a big verdict —
+  green **PASS** / red **FAIL**. Newest on top, keeps appending as boards
+  complete.
+- **Settings (gear button, top-right)** — toggle **dark mode**; the choice
+  is remembered across reloads.
 - **Status bar (bottom)** — the current step and board counter.
 
 ## 5. Adjusting the show
