@@ -60,8 +60,9 @@ above and browse to `http://<server-ip>:8000` from the display machine.
   detection boxes (red), masks (black) and defect marks (yellow) each blink
   3×, and every step pauses ~2 s so the audience can follow.
 - **Action log (right edge)** — a timestamped before/after history of every
-  action (step started / finished, counts, durations, verdicts). New entries
-  appear at the bottom and flow upward; the oldest entries drop off the top.
+  action (step started / finished, counts, durations, verdicts). The newest
+  entry appears at the top and entries flow downward; the oldest drop off
+  the bottom.
 - **Status bar (bottom)** — the current step and board counter.
 
 ## 5. Adjusting the show

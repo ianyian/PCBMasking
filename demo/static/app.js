@@ -44,17 +44,18 @@ tickClock();
 
 const MAX_ACTIONS = 22;
 
-/* Append a timestamped entry at the bottom of the action bar; entries flow
- * upward, all in solid color, oldest dropped past MAX_ACTIONS. Kinds:
- * "begin" (gold edge) marks a task starting, "alert" (red edge) a blink
- * warning, default (navy edge) a completed action. */
+/* Insert a timestamped entry at the top of the action bar; entries flow
+ * downward (newest first), all in solid color, oldest dropped off the
+ * bottom past MAX_ACTIONS. Kinds: "begin" (gold edge) marks a task
+ * starting, "alert" (red edge) a blink warning, default (navy edge) a
+ * completed action. */
 function logAction(msg, kind = "") {
   const list = $("actionList");
   const e = document.createElement("div");
   e.className = "ah-entry" + (kind ? " ah-" + kind : "");
   e.innerHTML = `<span class="ah-time">${fmtTime(new Date())}</span>${msg}`;
-  list.appendChild(e);
-  while (list.children.length > MAX_ACTIONS) list.removeChild(list.firstChild);
+  list.insertBefore(e, list.firstChild);
+  while (list.children.length > MAX_ACTIONS) list.removeChild(list.lastChild);
 }
 
 /* ---------------- queue bar ---------------- */

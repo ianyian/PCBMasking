@@ -36,6 +36,13 @@ Every step also dwells ≥ 2 s (`STEP_DWELL_MS` in `static/app.js`) so viewers
 can follow, and steps 2–4 show a simulated processing phase (`PROCESS_MS`).
 When a new board loads, all four panels reset to blank first.
 
+An **action log** on the right ~20% of the screen records a timestamped
+entry for every action, including a "started" and a "finished" entry for
+each step with counts, durations and verdicts. The newest entry appears at
+the top and entries flow downward (oldest drop off the bottom, keeping the
+latest `MAX_ACTIONS` = 22). Left-edge colors: gold = task started,
+red = blink alert, navy = completed action.
+
 ## Dataset
 
 `generate_dataset.py` writes `demo/dataset/raw/PCB-001.png … PCB-100.png`

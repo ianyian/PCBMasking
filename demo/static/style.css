@@ -265,7 +265,7 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;   /* newest entry sits at the bottom */
+  justify-content: flex-start;   /* newest entry sits at the top */
   gap: 3px;
   overflow: hidden;
 }
