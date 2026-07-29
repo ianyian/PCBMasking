@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCB Privacy Masking &amp; Defect Inspection — Live Demo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2316345c'/%3E%3Crect x='3' y='3' width='10' height='10' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">AOI</span>
+    <span class="brand-text">PCB Privacy Masking &amp; Defect Inspection</span>
+  </div>
+  <div class="topbar-right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="settings">
+      <button id="settingsBtn" class="settings-btn" title="Settings"
+              aria-label="Settings">&#9881;</button>
+      <div class="settings-menu" id="settingsMenu" hidden>
+        <label class="settings-item">
+          <input type="checkbox" id="darkToggle"> Dark mode
+        </label>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="queue-wrap">
+  <div class="queue-viewport">
+    <div class="queue-track" id="queueTrack"></div>
+  </div>
+</section>
+
+<main class="grid">
+
+  <section class="panel" id="panel1">
+    <div class="panel-head">
+      <span class="step-no">STEP 1</span>
+      <span class="step-title">Inspection — load board</span>
+      <span class="sn-tag" id="sn1">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv1"></canvas>
+        <div class="stamp" id="stamp1"></div>
+      </div>
+      <div class="info" id="info1"><p class="placeholder">Waiting for board…</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel2">
+    <div class="panel-head">
+      <span class="step-no">STEP 2</span>
+      <span class="step-title">Object detection — sensitive data</span>
+      <span class="sn-tag" id="sn2">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv2"></canvas></div>
+      <div class="info" id="info2"><p class="placeholder">Idle</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel4">
+    <div class="panel-head">
+      <span class="step-no">STEP 4</span>
+      <span class="step-title">Defect detection</span>
+      <span class="sn-tag" id="sn4">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv4"></canvas></div>
+      <div class="info" id="info4"><p class="placeholder">Idle</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel3">
+    <div class="panel-head">
+      <span class="step-no">STEP 3</span>
+      <span class="step-title">Object masking</span>
+      <span class="sn-tag" id="sn3">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv3"></canvas></div>
+      <div class="info" id="info3"><p class="placeholder">Idle</p></div>
+    </div>
+  </section>
+
+</main>
+
+<aside class="action-bar" id="actionBar" aria-label="Action history">
+  <div class="ah-title">ACTION LOG</div>
+  <div class="ah-list" id="actionList"></div>
+  <div class="ah-title rp-title">REPORT</div>
+  <div class="rp-list" id="reportList"></div>
+</aside>
+
+<footer class="statusbar">
+  <span id="statusMsg">Initialising…</span>
+  <span class="counter" id="counter"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
