@@ -32,12 +32,16 @@ SEED = 20260729
 W, H = 1400, 900          # board image size
 MARGIN = 30               # keep-out border for placed items
 
+# The six defect classes of the public PCB defect dataset (HRIPCB /
+# kaggle.com/datasets/norbertelter/pcb-defect-dataset), so the demo speaks
+# the same vocabulary as the real defect-detection literature.
 DEFECT_TYPES = [
-    ("DEF-SCR", "Scratch on solder mask"),
-    ("DEF-SB",  "Solder bridge"),
-    ("DEF-MP",  "Missing pad / lifted pad"),
-    ("DEF-TS",  "Tombstoned component"),
-    ("DEF-DC",  "Copper discoloration"),
+    ("missing_hole",    "Missing hole — pad without drilled hole"),
+    ("mouse_bite",      "Mouse bite — nibbled trace edge"),
+    ("open_circuit",    "Open circuit — broken trace"),
+    ("short",           "Short — copper bridge between traces"),
+    ("spur",            "Spur — copper protrusion from trace"),
+    ("spurious_copper", "Spurious copper — stray copper residue"),
 ]
 
 LOGO_STYLES = ["bear", "shield", "ring", "wordmark"]
@@ -47,7 +51,7 @@ LOGO_STYLES = ["bear", "shield", "ring", "wordmark"]
 # Board background
 # ---------------------------------------------------------------------------
 
-def make_board_background(rng: np.random.Generator) -> np.ndarray:
+def make_board_background(rng: np.random.Generator):
     base_green = (int(rng.integers(35, 55)), int(rng.integers(95, 130)),
                   int(rng.integers(25, 45)))  # BGR dark PCB green
     img = np.full((H, W, 3), base_green, np.uint8)
@@ -94,7 +98,7 @@ def make_board_background(rng: np.random.Generator) -> np.ndarray:
     for c in ((45, 45), (W - 45, 45), (45, H - 90), (W - 45, H - 90)):
         cv2.circle(img, c, 14, (200, 205, 210), -1)
         cv2.circle(img, c, 8, base_green, -1)
-    return img
+    return img, base_green, trace
 
 
 # ---------------------------------------------------------------------------
@@ -230,33 +234,51 @@ def add_logo(img, x, y, rng, style: str) -> tuple:
 # Defects
 # ---------------------------------------------------------------------------
 
-def add_defect(img, code: str, x, y, rng) -> tuple:
-    if code == "DEF-SCR":
-        x2 = min(x + int(rng.integers(70, 150)), W - MARGIN)
-        y2 = int(np.clip(y + int(rng.integers(-30, 30)), MARGIN, H - 100))
-        cv2.line(img, (x, y), (x2, y2), (185, 205, 210), 3)
-        return (min(x, x2) - 8, min(y, y2) - 8, max(x, x2) + 8, max(y, y2) + 8)
-    if code == "DEF-SB":
-        cv2.rectangle(img, (x, y), (x + 26, y + 10), (150, 170, 180), -1)
-        cv2.ellipse(img, (x + 13, y + 14), (16, 8), 0, 0, 360,
-                    (160, 180, 190), -1)
-        return (x - 8, y - 8, x + 34, y + 28)
-    if code == "DEF-MP":
-        cv2.circle(img, (x, y), 11, (30, 45, 35), -1)
-        cv2.circle(img, (x, y), 11, (90, 110, 100), 2)
-        return (x - 19, y - 19, x + 19, y + 19)
-    if code == "DEF-TS":
-        cv2.rectangle(img, (x, y), (x + 24, y + 10), (70, 70, 75), -1)
-        pts = np.array([(x + 24, y + 10), (x + 40, y - 12), (x + 46, y - 8),
-                        (x + 30, y + 12)], np.int32)
-        cv2.fillPoly(img, [pts], (95, 95, 100))
-        return (x - 8, y - 20, x + 54, y + 20)
-    # DEF-DC discoloration
-    overlay = img.copy()
-    axes = (int(rng.integers(25, 45)), int(rng.integers(18, 32)))
-    cv2.ellipse(overlay, (x, y), axes, 0, 0, 360, (40, 90, 120), -1)
-    cv2.addWeighted(overlay, 0.55, img, 0.45, 0, img)
-    return (x - axes[0] - 6, y - axes[1] - 6, x + axes[0] + 6, y + axes[1] + 6)
+def add_defect(img, code: str, x, y, rng, board: tuple, trace: tuple) -> tuple:
+    """Draw one HRIPCB-class defect centred near (x, y).
+
+    Each defect renders its own short piece of local copper context (trace or
+    pad) and then damages it, so the anomaly reads correctly on screen.
+    `board` is the bare-board colour, `trace` the copper/trace colour.
+    """
+    pad_ring = (150, 200, 210)
+    if code == "missing_hole":
+        # a via pad identical to the normal ones, but with no drilled hole
+        cv2.circle(img, (x, y), 12, pad_ring, -1)
+        return (x - 20, y - 20, x + 20, y + 20)
+    if code == "mouse_bite":
+        cv2.line(img, (x - 50, y), (x + 50, y), trace, 9)
+        for dx in (-16, -2, 13):
+            cv2.circle(img, (x + dx, y - 5), int(rng.integers(4, 7)),
+                       board, -1)
+        return (x - 34, y - 18, x + 34, y + 16)
+    if code == "open_circuit":
+        cv2.line(img, (x - 50, y), (x + 50, y), trace, 6)
+        gap = int(rng.integers(6, 12))
+        cv2.rectangle(img, (x - gap, y - 5), (x + gap, y + 5), board, -1)
+        return (x - gap - 14, y - 15, x + gap + 14, y + 15)
+    if code == "short":
+        cv2.line(img, (x - 50, y - 12), (x + 50, y - 12), trace, 6)
+        cv2.line(img, (x - 50, y + 14), (x + 50, y + 14), trace, 6)
+        bx = int(rng.integers(-18, 18))
+        cv2.line(img, (x + bx, y - 12), (x + bx + 3, y + 14), trace, 7)
+        return (x + bx - 14, y - 24, x + bx + 17, y + 26)
+    if code == "spur":
+        cv2.line(img, (x - 50, y), (x + 50, y), trace, 7)
+        tip = int(rng.integers(14, 22))
+        pts = np.array([(x - 8, y - 3), (x + 8, y - 3), (x, y - tip)],
+                       np.int32)
+        cv2.fillPoly(img, [pts], trace)
+        return (x - 18, y - tip - 8, x + 18, y + 14)
+    # spurious_copper — irregular stray copper blob on the bare board
+    n = int(rng.integers(5, 8))
+    ang = np.sort(rng.random(n) * 2 * np.pi)
+    rad = rng.integers(10, 24, n)
+    pts = np.stack([x + rad * np.cos(ang), y + rad * np.sin(ang)],
+                   axis=1).astype(np.int32)
+    cv2.fillPoly(img, [pts], trace)
+    r = int(rad.max())
+    return (x - r - 8, y - r - 8, x + r + 8, y + r + 8)
 
 
 # ---------------------------------------------------------------------------
@@ -264,7 +286,7 @@ def add_defect(img, code: str, x, y, rng) -> tuple:
 # ---------------------------------------------------------------------------
 
 def generate_board(sn: str, rng: np.random.Generator) -> tuple[np.ndarray, dict]:
-    img = make_board_background(rng)
+    img, board_col, trace_col = make_board_background(rng)
     placer = Placer(rng)
     labels = []
 
@@ -299,9 +321,10 @@ def generate_board(sn: str, rng: np.random.Generator) -> tuple[np.ndarray, dict]
     defects = []
     for _ in range(int(rng.integers(0, 6))):          # 0-5 defects
         code, desc = DEFECT_TYPES[int(rng.integers(0, len(DEFECT_TYPES)))]
-        pos = placer.spot(70, 60)
+        pos = placer.spot(130, 80)
         if pos:
-            bbox = add_defect(img, code, pos[0] + 20, pos[1] + 20, rng)
+            bbox = add_defect(img, code, pos[0] + 65, pos[1] + 40, rng,
+                              board_col, trace_col)
             defects.append({"code": code, "desc": desc,
                             "bbox": tuple(int(v) for v in bbox)})
 

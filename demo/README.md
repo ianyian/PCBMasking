@@ -41,9 +41,14 @@ boxes for every sensitive item and injected defect. Generation is seeded, so
 the dataset is reproducible; it is therefore not committed to git.
 
 Variance per board: 1–2 barcodes, 1–2 QR codes, optional DataMatrix,
-1–3 serial/lot texts, 1–2 company logos (4 styles), 0–5 defects out of
-5 defect types (scratch, solder bridge, missing pad, tombstone,
-discoloration).
+1–3 serial/lot texts, 1–2 company logos (4 styles), 0–5 defects.
+
+Defect classes follow the public
+[PCB defect dataset](https://www.kaggle.com/datasets/norbertelter/pcb-defect-dataset)
+(HRIPCB, Peking University), so the demo uses the same vocabulary as the
+defect-detection literature: `missing_hole`, `mouse_bite`, `open_circuit`,
+`short`, `spur`, `spurious_copper`. Each is drawn with local copper context
+(a trace segment or pad) so the anomaly is visually recognisable on screen.
 
 ## Demo note
 
