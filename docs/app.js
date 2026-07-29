@@ -37,8 +37,11 @@ let cycle = 0;
   const menu = $("settingsMenu");
   const toggle = $("darkToggle");
   const root = document.getElementById("app") || document.body;
-  let dark = false;
-  try { dark = localStorage.getItem("pcbdemo-dark") === "1"; } catch (e) {}
+  let dark = true; // dark mode is the default
+  try {
+    const stored = localStorage.getItem("pcbdemo-dark");
+    if (stored !== null) dark = stored === "1";
+  } catch (e) {}
   root.classList.toggle("dark", dark);
   toggle.checked = dark;
   btn.addEventListener("click", () => {
@@ -69,6 +72,37 @@ tickClock();
 
 const MAX_ACTIONS = 22;
 
+/* Copy one record's text; clipboard API needs HTTPS/localhost, so fall back
+ * to a temporary textarea + execCommand for plain-HTTP LAN hosting. */
+async function copyText(text, btn) {
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand("copy"); } catch (e2) {}
+    ta.remove();
+  }
+  btn.textContent = ok ? "\u2713" : "!";
+  setTimeout(() => { btn.textContent = "\u29c9"; }, 1200);
+}
+
+/* Hover-reveal copy button appended to a log/report record. */
+function addCopyButton(entry, text) {
+  const btn = document.createElement("button");
+  btn.className = "copy-btn";
+  btn.title = "Copy this record";
+  btn.textContent = "\u29c9";
+  btn.addEventListener("click", () => copyText(text, btn));
+  entry.appendChild(btn);
+}
+
 /* Insert a timestamped entry at the top of the action bar; entries flow
  * downward (newest first), all in solid color, oldest dropped off the
  * bottom past MAX_ACTIONS. Format: time [SN] message. Kinds: "begin"
@@ -81,6 +115,8 @@ function logAction(sn, msg, kind = "") {
   e.innerHTML =
     `<span class="ah-time">${fmtTime(new Date())}</span>` +
     `<span class="ah-sn">[${sn}]</span> ${msg}`;
+  addCopyButton(e, `${fmtTime(new Date())} [${sn}] ` +
+                   msg.replace(/<[^>]+>/g, ""));
   list.insertBefore(e, list.firstChild);
   while (list.children.length > MAX_ACTIONS) list.removeChild(list.lastChild);
 }
@@ -104,6 +140,7 @@ function addReport(ann, pct) {
     `<span class="rp-verdict ${fail ? "fail" : "pass"}">` +
     `${fail ? "FAIL" : "PASS"}</span></div>` +
     `<div class="rp-detail">${detail}</div>`;
+  addCopyButton(e, `${ann.sn} ${fail ? "FAIL" : "PASS"} — ${detail}`);
   list.insertBefore(e, list.firstChild);
   while (list.children.length > MAX_REPORTS) list.removeChild(list.lastChild);
 }

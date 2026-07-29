@@ -70,8 +70,15 @@ above and browse to `http://<server-ip>:8000` from the display machine.
   board: objects masked, masked share, defect codes, and a big verdict —
   green **PASS** / red **FAIL**. Newest on top, keeps appending as boards
   complete.
-- **Settings (gear button, top-right)** — toggle **dark mode**; the choice
-  is remembered across reloads.
+- **Settings (gear button, top-right)** — a settings panel with an
+  Appearance section (**dark mode** toggle — dark is the default; the choice
+  is remembered across reloads) and a Documentation section with a
+  **README** button linking to the project repository
+  (https://github.com/ianyian/PCBMasking) for details and technical
+  information.
+- **Copy records** — hover any action-log or report record and a copy icon
+  appears on its right; click it to copy that record's text to the
+  clipboard.
 - **Status bar (bottom)** — the current step and board counter.
 
 ## 5. Adjusting the show
