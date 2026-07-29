@@ -245,22 +245,20 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   display: flex;
   flex-direction: column;
   padding: 10px 12px 12px;
-  background: linear-gradient(to left,
-              rgba(22, 52, 92, .14), rgba(22, 52, 92, .03));
-  border-left: 2px solid rgba(22, 52, 92, .35);
-  backdrop-filter: blur(2px);
+  background: #e8edf4;
+  border-left: 3px solid var(--navy);
 }
 .ah-title {
   flex: 0 0 auto;
-  color: var(--navy);
+  color: #fff;
+  background: var(--navy);
   font-size: .72rem;
   font-weight: 800;
   letter-spacing: 1.2px;
-  opacity: .8;
-  text-align: right;
-  border-bottom: 1px solid rgba(22, 52, 92, .3);
-  padding-bottom: 4px;
-  margin-bottom: 6px;
+  text-align: center;
+  border-radius: 3px;
+  padding: 4px 0;
+  margin-bottom: 8px;
 }
 .ah-list {
   flex: 1 1 auto;
@@ -272,14 +270,14 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
   overflow: hidden;
 }
 .ah-entry {
-  background: rgba(255, 255, 255, .68);
-  border-left: 3px solid var(--navy);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--navy);
   border-radius: 3px;
   padding: 2px 8px;
   font-size: .78rem;
   line-height: 1.35;
   color: var(--navy-dark);
-  transition: opacity .6s ease;
   white-space: normal;
   word-break: break-word;
 }

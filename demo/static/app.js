@@ -45,7 +45,7 @@ tickClock();
 const MAX_ACTIONS = 22;
 
 /* Append a timestamped entry at the bottom of the action bar; entries flow
- * upward and fade from solid (newest) to ~10% opacity (oldest). Kinds:
+ * upward, all in solid color, oldest dropped past MAX_ACTIONS. Kinds:
  * "begin" (gold edge) marks a task starting, "alert" (red edge) a blink
  * warning, default (navy edge) a completed action. */
 function logAction(msg, kind = "") {
@@ -55,10 +55,6 @@ function logAction(msg, kind = "") {
   e.innerHTML = `<span class="ah-time">${fmtTime(new Date())}</span>${msg}`;
   list.appendChild(e);
   while (list.children.length > MAX_ACTIONS) list.removeChild(list.firstChild);
-  const n = list.children.length;
-  [...list.children].forEach((c, i) => {
-    c.style.opacity = Math.max(0.1, 1 - (n - 1 - i) * 0.09).toFixed(2);
-  });
 }
 
 /* ---------------- queue bar ---------------- */
