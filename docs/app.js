@@ -58,6 +58,33 @@ let cycle = 0;
   });
 })();
 
+/* ---------------- report / action-log pager ---------------- */
+
+(function initPager() {
+  const sw = $("pageSwitch");
+  const pages = { report: $("reportList"), log: $("actionList") };
+  const tabs = { report: $("tabReport"), log: $("tabLog") };
+  let page = "report"; // first page is the report
+  function apply() {
+    for (const k of Object.keys(pages)) {
+      pages[k].hidden = k !== page;
+      tabs[k].classList.toggle("active", k === page);
+    }
+  }
+  function toggle() {
+    page = page === "report" ? "log" : "report";
+    apply();
+  }
+  sw.addEventListener("click", toggle);
+  sw.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      toggle();
+    }
+  });
+  apply();
+})();
+
 /* ---------------- clock ---------------- */
 
 function tickClock() {
@@ -145,6 +172,118 @@ function addReport(ann, pct) {
   while (list.children.length > MAX_REPORTS) list.removeChild(list.lastChild);
 }
 
+/* ---------------- last-hour yield & defect trend chart ---------------- */
+
+const WINDOW_MS = 60 * 60 * 1000; // chart always shows the last hour
+const BUCKET_MS = 5 * 60 * 1000;  // 12 buckets of 5 minutes
+const N_BUCKETS = WINDOW_MS / BUCKET_MS;
+const DEFECT_CODES = ["missing_hole", "mouse_bite", "open_circuit",
+                      "short", "spur", "spurious_copper"];
+const DEFECT_COLORS = {
+  missing_hole: "#ef6461", mouse_bite: "#f2a541", open_circuit: "#5b8dd9",
+  short: "#9b5de5", spur: "#00b4a0", spurious_copper: "#c98bdb",
+};
+const DEFECT_SHORT = {
+  missing_hole: "hole", mouse_bite: "bite", open_circuit: "open",
+  short: "short", spur: "spur", spurious_copper: "copper",
+};
+
+const history = []; // {t, pass, codes[]} per finished board, last hour kept
+let trendChart = null;
+
+function initChart() {
+  if (typeof Chart === "undefined") return; // vendor bundle missing — skip
+  const AXIS = "#8a97a8"; // neutral mid-gray, readable on light and dark
+  trendChart = new Chart($("trendChart"), {
+    type: "bar",
+    data: {
+      labels: [],
+      datasets: [
+        ...DEFECT_CODES.map((c) => ({
+          label: DEFECT_SHORT[c], data: [], backgroundColor: DEFECT_COLORS[c],
+          stack: "defects", yAxisID: "y",
+        })),
+        {
+          type: "line", label: "yield %", data: [], yAxisID: "y1",
+          borderColor: "#35c477", backgroundColor: "#35c477",
+          borderWidth: 2, pointRadius: 2, tension: 0.25, spanGaps: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: {
+          labels: { color: AXIS, boxWidth: 8, padding: 5, font: { size: 9 } },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true, grid: { display: false },
+          ticks: { color: AXIS, font: { size: 8 }, maxRotation: 0 },
+        },
+        y: {
+          stacked: true, beginAtZero: true,
+          ticks: { color: AXIS, font: { size: 8 }, precision: 0 },
+          grid: { color: "rgba(138, 151, 168, .22)" },
+        },
+        y1: {
+          position: "right", min: 0, max: 100,
+          ticks: { color: AXIS, font: { size: 8 },
+                   callback: (v) => v + "%" },
+          grid: { drawOnChartArea: false },
+        },
+      },
+    },
+  });
+}
+
+function recordResult(ann) {
+  history.push({
+    t: Date.now(),
+    pass: ann.defects.length === 0,
+    codes: ann.defects.map((d) => d.code),
+  });
+  updateChart();
+}
+
+function updateChart() {
+  if (!trendChart) return;
+  const now = Date.now();
+  const start = now - WINDOW_MS;
+  while (history.length && history[0].t < start) history.shift();
+
+  const labels = [];
+  const counts = DEFECT_CODES.map(() => new Array(N_BUCKETS).fill(0));
+  const pass = new Array(N_BUCKETS).fill(0);
+  const total = new Array(N_BUCKETS).fill(0);
+  for (let i = 0; i < N_BUCKETS; i++) {
+    labels.push(new Date(start + i * BUCKET_MS).toLocaleTimeString(
+      undefined, { hour12: false, hour: "2-digit", minute: "2-digit" }));
+  }
+  for (const r of history) {
+    const b = Math.min(N_BUCKETS - 1, Math.floor((r.t - start) / BUCKET_MS));
+    total[b]++;
+    if (r.pass) pass[b]++;
+    for (const c of r.codes) {
+      const k = DEFECT_CODES.indexOf(c);
+      if (k >= 0) counts[k][b]++;
+    }
+  }
+  trendChart.data.labels = labels;
+  DEFECT_CODES.forEach((c, k) => {
+    trendChart.data.datasets[k].data = counts[k];
+  });
+  trendChart.data.datasets[DEFECT_CODES.length].data =
+    total.map((t, i) => (t ? Math.round((1000 * pass[i]) / t) / 10 : null));
+  trendChart.update();
+}
+
+initChart();
+setInterval(updateChart, 60 * 1000); // keep the 1-hour window sliding
+
 /* ---------------- queue bar ---------------- */
 
 function buildQueue() {
@@ -161,14 +300,40 @@ function buildQueue() {
   }
 }
 
+let queueIdx = 0;
+
+/* Keep the board being inspected in the MIDDLE of the bar: upcoming boards
+ * stretch to the right, already-inspected boards stay visible on the left
+ * (newest right next to the middle) with a wide green/red verdict border. */
 function updateQueue(idx) {
+  queueIdx = idx;
   boards.forEach((sn, i) => {
     const chip = $("chip-" + sn);
     chip.classList.toggle("current", i === idx);
     chip.classList.toggle("done", i < idx);
   });
-  // slide processed chips out to the left; keep the current board first
-  $("queueTrack").style.transform = `translateX(${-idx * CHIP_W}px)`;
+  centerQueue();
+}
+
+function centerQueue() {
+  const vp = document.querySelector(".queue-viewport");
+  const offset = vp.clientWidth / 2 - (queueIdx * CHIP_W + (CHIP_W - 10) / 2);
+  $("queueTrack").style.transform = `translateX(${offset}px)`;
+}
+
+window.addEventListener("resize", centerQueue);
+
+/* Wide verdict border on the chip once its board finishes inspection. */
+function markChipResult(sn, pass) {
+  const chip = $("chip-" + sn);
+  if (chip) chip.classList.add(pass ? "res-pass" : "res-fail");
+}
+
+function clearChipResults() {
+  boards.forEach((sn) => {
+    const chip = $("chip-" + sn);
+    if (chip) chip.classList.remove("res-pass", "res-fail");
+  });
 }
 
 /* ---------------- drawing helpers ---------------- */
@@ -453,6 +618,8 @@ async function runBoard(idx) {
             "alert");
   await flashVerdict(panels[3], ann.defects.length === 0);
   addReport(ann, (100 * area) / (ann.width * ann.height));
+  markChipResult(sn, ann.defects.length === 0);
+  recordResult(ann);
   await sleep(STEP_DWELL_MS);
 
   status.textContent =
@@ -498,9 +665,9 @@ async function show() {
       }
     }
     cycle++;
-    updateQueue(0);
+    clearChipResults();
     $("queueTrack").style.transition = "none";
-    $("queueTrack").style.transform = "translateX(0)";
+    updateQueue(0); // snap back to the start of the dataset, no animation
     void $("queueTrack").offsetWidth; // reflow before re-enabling animation
     $("queueTrack").style.transition = "";
   }

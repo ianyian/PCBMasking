@@ -100,10 +100,18 @@
 </main>
 
 <aside class="action-bar" id="actionBar" aria-label="Action history">
-  <div class="ah-title">ACTION LOG</div>
-  <div class="ah-list" id="actionList"></div>
-  <div class="ah-title rp-title">REPORT</div>
-  <div class="rp-list" id="reportList"></div>
+  <div class="ah-title page-switch" id="pageSwitch" role="button" tabindex="0"
+       title="Click to switch page">
+    <span class="tab-opt active" id="tabReport">REPORT</span>
+    <span class="tab-sep">/</span>
+    <span class="tab-opt" id="tabLog">ACTION LOG</span>
+  </div>
+  <div class="page-area">
+    <div class="rp-list" id="reportList"></div>
+    <div class="ah-list" id="actionList" hidden></div>
+  </div>
+  <div class="ah-title chart-title">LAST HOUR — YIELD &amp; DEFECTS</div>
+  <div class="chart-box"><canvas id="trendChart"></canvas></div>
 </aside>
 
 <footer class="statusbar">
@@ -111,6 +119,7 @@
   <span class="counter" id="counter"></span>
 </footer>
 
+<script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

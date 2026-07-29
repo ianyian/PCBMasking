@@ -57,19 +57,28 @@ above and browse to `http://<server-ip>:8000` from the display machine.
 
 ## 4. What you will see
 
-- **Top preview bar** — the queue of upcoming boards; the current board is
-  highlighted and the bar slides to the left after each board finishes.
+- **Top preview bar** — the board being inspected sits in the **middle** of
+  the bar; upcoming boards stretch to the right and already-inspected boards
+  stay visible on the left (newest right next to the middle). Each inspected
+  board keeps a wide verdict border — **green** = good board, **red** = bad
+  board — so previous results are readable at a glance. The bar slides after
+  every board so the next board takes the middle spot.
 - **Four step panels** — each panel's frame blinks 3× when its step starts,
   detection boxes (red), masks (black) and defect marks (yellow) each blink
   3×, and every step pauses ~2 s so the audience can follow.
-- **Action log (right edge, top ~70%)** — a timestamped before/after history
-  of every action in the format `HH:MM:SS.mmm [PCB-006] message`, so entries
-  group by board serial at a glance. The newest entry appears at the top and
-  entries flow downward; the oldest drop off the bottom.
-- **Report (right edge, bottom ~30%)** — one summary card per finished
-  board: objects masked, masked share, defect codes, and a big verdict —
-  green **PASS** / red **FAIL**. Newest on top, keeps appending as boards
-  complete.
+- **Report / Action Log pager (right edge, top ~70%)** — one container with
+  two pages; click its title bar ("REPORT / ACTION LOG") to switch between
+  them. Page 1 (default) is the **Report**: one summary card per finished
+  board — objects masked, masked share, defect codes, and a big verdict,
+  green **PASS** / red **FAIL**, newest on top. Page 2 is the **Action
+  Log**: a timestamped history of every action in the format
+  `HH:MM:SS.mmm [PCB-006] message`, newest at the top.
+- **Last-hour trend chart (right edge, bottom ~30%)** — a Chart.js combo
+  chart that always shows the last 60 minutes in 5-minute buckets: stacked
+  bars count defects per HRIPCB code, the green line is the yield %
+  (right axis). It refreshes after every board and slides forward once a
+  minute, so operators see the recent result trend at a glance. Chart.js is
+  bundled locally (`demo/static/vendor/chart.umd.js`) — no internet needed.
 - **Settings (gear button, top-right)** — a settings panel with an
   Appearance section (**dark mode** toggle — dark is the default; the choice
   is remembered across reloads) and a Documentation section with a

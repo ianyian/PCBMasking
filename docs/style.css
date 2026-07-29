@@ -107,7 +107,10 @@ body {
 }
 .chip .chip-sn { font-weight: 700; font-size: .95rem; letter-spacing: .5px; }
 .chip.current { border-color: var(--accent); background: var(--navy-light); }
-.chip.done { opacity: .38; }
+.chip.done { opacity: .92; }
+/* inspected boards keep a wide verdict border so past results stay readable */
+.chip.res-pass { border: 5px solid var(--pass-green); }
+.chip.res-fail { border: 5px solid var(--detect-red); }
 
 /* ---------- 2x2 step grid ---------- */
 
@@ -183,7 +186,7 @@ body {
   justify-content: center;
   overflow: hidden;
 }
-canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
+.canvas-box canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
 .stamp {
   position: absolute;
   left: 8px;
@@ -266,6 +269,24 @@ canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
   padding: 4px 0;
   margin-bottom: 8px;
 }
+/* clickable page switch: REPORT / ACTION LOG share one paged container */
+.page-switch { cursor: pointer; user-select: none; }
+.page-switch:hover, .page-switch:focus-visible {
+  background: var(--navy-light);
+  outline: none;
+}
+.tab-opt { opacity: .5; }
+.tab-opt.active { opacity: 1; color: var(--accent); }
+.tab-sep { opacity: .5; margin: 0 4px; }
+
+.page-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.page-area > [hidden] { display: none !important; }
+
 .ah-list {
   flex: 1 1 auto;
   min-height: 0;
@@ -384,15 +405,27 @@ canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
 
 /* ---------- report list (bottom ~30% of the right bar) ---------- */
 
-.rp-title { margin-top: 10px; }
 .rp-list {
-  flex: 0 0 30%;
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;   /* newest report at the top */
   gap: 4px;
   overflow: hidden;
+}
+
+/* ---------- last-hour trend chart (bottom ~30% of the right bar) ---------- */
+
+.chart-title { margin-top: 10px; }
+.chart-box {
+  flex: 0 0 27%;
+  min-height: 0;
+  position: relative;            /* Chart.js responsive sizing anchor */
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 6px;
 }
 .rp-entry {
   background: var(--panel-bg);

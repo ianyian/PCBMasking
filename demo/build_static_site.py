@@ -87,6 +87,9 @@ def build_html() -> str:
         """{{ url_for('static', filename='style.css') }}""", "style.css")
     html = html.replace(
         """{{ url_for('static', filename='app.js') }}""", "app.js")
+    html = html.replace(
+        """{{ url_for('static', filename='vendor/chart.umd.js') }}""",
+        "chart.umd.js")
     assert "url_for" not in html
     return html
 
@@ -98,6 +101,7 @@ def main():
     (DOCS / "index.html").write_text(build_html())
     (DOCS / "app.js").write_text(build_js())
     shutil.copy(DEMO / "static/style.css", DOCS / "style.css")
+    shutil.copy(DEMO / "static/vendor/chart.umd.js", DOCS / "chart.umd.js")
     shutil.copytree(DEMO / "dataset", DOCS / "dataset")
     n = len(list((DOCS / "dataset/raw").glob("*.png")))
     print(f"built docs/ with {n} boards — enable Pages: main + /docs")
