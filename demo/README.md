@@ -9,6 +9,9 @@ Flow: top preview bar (PCB-001 … PCB-100, advancing to the left) →
 **Step 3 Object masking** (black fill, blink 3×) →
 **Step 4 Defect detection** (yellow marks, blink 3×) → next board, forever.
 
+Full setup / run / tuning / troubleshooting guide:
+[RUN_INSTRUCTIONS.md](RUN_INSTRUCTIONS.md).
+
 ## Quick start
 
 ```bash

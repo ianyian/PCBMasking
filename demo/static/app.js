@@ -40,6 +40,27 @@ function tickClock() {
 setInterval(tickClock, 1000);
 tickClock();
 
+/* ---------------- action-history overlay ---------------- */
+
+const MAX_ACTIONS = 22;
+
+/* Append a timestamped entry at the bottom of the action bar; entries flow
+ * upward and fade from solid (newest) to ~10% opacity (oldest). Kinds:
+ * "begin" (gold edge) marks a task starting, "alert" (red edge) a blink
+ * warning, default (navy edge) a completed action. */
+function logAction(msg, kind = "") {
+  const list = $("actionList");
+  const e = document.createElement("div");
+  e.className = "ah-entry" + (kind ? " ah-" + kind : "");
+  e.innerHTML = `<span class="ah-time">${fmtTime(new Date())}</span>${msg}`;
+  list.appendChild(e);
+  while (list.children.length > MAX_ACTIONS) list.removeChild(list.firstChild);
+  const n = list.children.length;
+  [...list.children].forEach((c, i) => {
+    c.style.opacity = Math.max(0.1, 1 - (n - 1 - i) * 0.09).toFixed(2);
+  });
+}
+
 /* ---------------- queue bar ---------------- */
 
 function buildQueue() {
@@ -176,10 +197,13 @@ function step1Info(p, ann, start) {
   p.info.innerHTML =
     `<h4>Board loaded</h4>
      <p><span class="k">Serial:</span> <b>${ann.sn}</b><br>
+        <span class="k">Data source:</span> demo dataset<br>
+        <span class="k">File:</span> dataset/raw/${ann.sn}.png<br>
         <span class="k">Image size:</span> ${ann.width} × ${ann.height} px<br>
         <span class="k">Inspection start:</span><br><b>${start.toLocaleString(
           undefined, { hour12: false })}</b></p>
-     <p class="k">Raw board acquired from line camera. Forwarding to
+     <p class="k">Board image loaded from the demo sample dataset (synthetic
+        boards — no line camera attached in demo mode). Forwarding to
         sensitive-object detection…</p>`;
 }
 
@@ -241,6 +265,8 @@ async function runBoard(idx) {
     `Board ${idx + 1} / ${boards.length} · cycle ${cycle + 1}`;
 
   // new board: every panel resets to blank first
+  logAction(`<b>${sn}</b> — new inspection cycle, all step panels reset`,
+            "begin");
   panels.forEach(clearPanel);
   $("stamp1").textContent = "";
   panels.forEach((p) => (p.sn.textContent = sn));
@@ -253,36 +279,48 @@ async function runBoard(idx) {
   /* ---- STEP 1: inspection / load ---- */
   status.textContent = `Step 1 — loading board ${sn}`;
   const start = new Date();
+  logAction(`Step 1 started — loading ${sn} from demo dataset ` +
+            `(dataset/raw/${sn}.png)`, "begin");
   await blinkFrame(panels[0]);
   drawBase(panels[0], img);
   $("stamp1").textContent = `${sn} · start ${fmtTime(start)}`;
   step1Info(panels[0], ann, start);
+  logAction(`Step 1 finished — image loaded, ${ann.width} × ${ann.height} px`);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 2: sensitive-object detection ---- */
   status.textContent = `Step 2 — detecting sensitive objects on ${sn}`;
+  logAction(`Step 2 started — scanning ${sn} for barcodes, QR/DataMatrix ` +
+            `codes, serial texts, logos`, "begin");
   await blinkFrame(panels[1]);
   drawBase(panels[1], img);
   setProcessing(panels[1], "Scanning for barcodes, QR codes, texts, logos");
   const t2 = performance.now();
   await sleep(PROCESS_MS);
   const ms2 = performance.now() - t2;
+  logAction(`Detection complete — <b>${ann.labels.length}</b> sensitive ` +
+            `object(s) found in ${(ms2 / 1000).toFixed(2)} s`);
+  logAction(`Blinking red boxes 3× to highlight detected areas`, "alert");
   await blinkOverlay(
     panels[1],
     () => drawBase(panels[1], img),
     () => drawDetectionBoxes(panels[1], img, ann.labels)
   );
   step2Info(panels[1], ann, ms2);
+  logAction(`Step 2 finished — results displayed`);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 3: masking ---- */
   status.textContent = `Step 3 — masking sensitive areas on ${sn}`;
+  logAction(`Step 3 started — masking ${ann.labels.length} sensitive ` +
+            `region(s) with irreversible black fill`, "begin");
   await blinkFrame(panels[2]);
   drawDetectionBoxes(panels[2], img, ann.labels);
   setProcessing(panels[2], "Applying irreversible black fill");
   const t3 = performance.now();
   await sleep(PROCESS_MS);
   const ms3 = performance.now() - t3;
+  logAction(`Blinking masked areas 3× to confirm coverage`, "alert");
   await blinkOverlay(
     panels[2],
     () => drawDetectionBoxes(panels[2], img, ann.labels),
@@ -290,28 +328,47 @@ async function runBoard(idx) {
   );
   const area = maskedArea(ann);
   step3Info(panels[2], ann, area, (100 * area) / (ann.width * ann.height), ms3);
+  logAction(`Step 3 finished — ${area.toLocaleString()} px² masked ` +
+            `(${((100 * area) / (ann.width * ann.height)).toFixed(2)} % of ` +
+            `board) in ${(ms3 / 1000).toFixed(2)} s`);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 4: defect detection ---- */
   status.textContent = `Step 4 — defect detection on ${sn}`;
+  logAction(`Step 4 started — comparing ${sn} against golden board for ` +
+            `defects`, "begin");
   await blinkFrame(panels[3]);
   drawMasks(panels[3], img, ann.labels);
   setProcessing(panels[3], "Comparing against golden board, locating defects");
   const t4 = performance.now();
   await sleep(PROCESS_MS);
   const ms4 = performance.now() - t4;
+  if (ann.defects.length) {
+    logAction(`Defect scan complete — <b>${ann.defects.length}</b> defect(s): ` +
+              ann.defects.map((d) => d.code).join(", ") +
+              ` (${(ms4 / 1000).toFixed(2)} s)`);
+    logAction(`Blinking yellow defect marks 3×`, "alert");
+  } else {
+    logAction(`Defect scan complete — no defect found ` +
+              `(${(ms4 / 1000).toFixed(2)} s)`);
+  }
   await blinkOverlay(
     panels[3],
     () => drawMasks(panels[3], img, ann.labels),
     () => drawDefects(panels[3], img, ann.labels, ann.defects)
   );
   step4Info(panels[3], ann, ms4);
+  logAction(`Step 4 finished — verdict: ` +
+            (ann.defects.length
+              ? `<b>FAIL</b>, route to rework`
+              : `<b>PASS</b>, released`));
   await sleep(STEP_DWELL_MS);
 
   status.textContent =
     `Board ${sn} complete — ` +
     (ann.defects.length ? `${ann.defects.length} defect(s) found` : "PASS") +
     ` · advancing queue`;
+  logAction(`${sn} inspection complete — advancing preview queue to the left`);
   await sleep(800);
 }
 

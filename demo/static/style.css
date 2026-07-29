@@ -55,7 +55,8 @@ body {
   flex: 0 0 auto;
   background: #fff;
   border-bottom: 2px solid var(--navy);
-  padding: 10px 18px 6px;
+  /* right padding keeps the queue clear of the action-log overlay */
+  padding: 10px calc(20vw + 14px) 6px 18px;
 }
 .queue-viewport { overflow: hidden; }
 .queue-track {
@@ -110,7 +111,8 @@ body {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 12px;
-  padding: 12px 18px;
+  /* right padding keeps the step panels clear of the action-log overlay */
+  padding: 12px calc(20vw + 14px) 12px 18px;
 }
 
 .panel {
@@ -229,6 +231,66 @@ canvas { max-width: 100%; max-height: 100%; display: block; }
 .badge-pass { color: #0d7a3f; font-weight: 800; }
 .badge-fail { color: var(--detect-red); font-weight: 800; }
 .k { color: #5a6b80; }
+
+/* ---------- transparent action-history overlay (right 20%) ---------- */
+
+.action-bar {
+  position: fixed;
+  top: 54px;                 /* below the navy header */
+  bottom: 36px;              /* above the status bar */
+  right: 0;
+  width: 20vw;
+  z-index: 50;
+  pointer-events: none;      /* pure overlay — never blocks the demo */
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px 12px;
+  background: linear-gradient(to left,
+              rgba(22, 52, 92, .14), rgba(22, 52, 92, .03));
+  border-left: 2px solid rgba(22, 52, 92, .35);
+  backdrop-filter: blur(2px);
+}
+.ah-title {
+  flex: 0 0 auto;
+  color: var(--navy);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  opacity: .8;
+  text-align: right;
+  border-bottom: 1px solid rgba(22, 52, 92, .3);
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+.ah-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;   /* newest entry sits at the bottom */
+  gap: 3px;
+  overflow: hidden;
+}
+.ah-entry {
+  background: rgba(255, 255, 255, .68);
+  border-left: 3px solid var(--navy);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: .78rem;
+  line-height: 1.35;
+  color: var(--navy-dark);
+  transition: opacity .6s ease;
+  white-space: normal;
+  word-break: break-word;
+}
+.ah-entry .ah-time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+  color: var(--navy);
+}
+.ah-entry.ah-begin { border-left-color: var(--accent); }
+.ah-entry.ah-alert { border-left-color: var(--detect-red); }
 
 /* ---------- footer ---------- */
 
