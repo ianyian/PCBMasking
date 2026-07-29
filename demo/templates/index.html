@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCB Privacy Masking &amp; Defect Inspection — Live Demo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2316345c'/%3E%3Crect x='3' y='3' width='10' height='10' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">AOI</span>
+    <span class="brand-text">PCB Privacy Masking &amp; Defect Inspection</span>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</header>
+
+<section class="queue-wrap">
+  <div class="queue-viewport">
+    <div class="queue-track" id="queueTrack"></div>
+  </div>
+  <div class="queue-arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+    <span class="arrow-label">board flow — next board enters from the right</span>
+  </div>
+</section>
+
+<main class="grid">
+
+  <section class="panel" id="panel1">
+    <div class="panel-head">
+      <span class="step-no">STEP 1</span>
+      <span class="step-title">Inspection — load board</span>
+      <span class="sn-tag" id="sn1">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv1"></canvas>
+        <div class="stamp" id="stamp1"></div>
+      </div>
+      <div class="info" id="info1"><p class="placeholder">Waiting for board…</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel2">
+    <div class="panel-head">
+      <span class="step-no">STEP 2</span>
+      <span class="step-title">Object detection — sensitive data</span>
+      <span class="sn-tag" id="sn2">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv2"></canvas></div>
+      <div class="info" id="info2"><p class="placeholder">Idle</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel4">
+    <div class="panel-head">
+      <span class="step-no">STEP 4</span>
+      <span class="step-title">Defect detection</span>
+      <span class="sn-tag" id="sn4">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv4"></canvas></div>
+      <div class="info" id="info4"><p class="placeholder">Idle</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel3">
+    <div class="panel-head">
+      <span class="step-no">STEP 3</span>
+      <span class="step-title">Object masking</span>
+      <span class="sn-tag" id="sn3">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-box"><canvas id="cv3"></canvas></div>
+      <div class="info" id="info3"><p class="placeholder">Idle</p></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="statusbar">
+  <span id="statusMsg">Initialising…</span>
+  <span class="counter" id="counter"></span>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -5,6 +5,10 @@ codes on PCB/AOI images **before** they are used for ML training. Runs fully
 offline — no image data ever leaves the machine. See [PROPOSAL.md](PROPOSAL.md)
 for the research-level design rationale, model options, and dataset sources.
 
+**Live demo:** a self-running big-screen demo (100 synthetic boards, 4-step
+inspection show) lives in [`demo/`](demo/README.md) — 
+`pip install -r demo/requirements.txt && python demo/generate_dataset.py && python demo/app.py`.
+
 ---
 
 ## 1. Quick reference — commands

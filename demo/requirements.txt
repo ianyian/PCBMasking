@@ -1,0 +1,6 @@
+# PCB inspection live-demo dependencies (independent of the main pipeline)
+flask>=3.0
+opencv-python-headless>=4.8
+numpy
+qrcode
+pillow
