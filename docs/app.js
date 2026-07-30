@@ -97,7 +97,7 @@ tickClock();
 
 /* ---------------- action-history overlay ---------------- */
 
-const MAX_ACTIONS = 22;
+const MAX_ACTIONS = 200;  // scrollable history
 
 /* Copy one record's text; clipboard API needs HTTPS/localhost, so fall back
  * to a temporary textarea + execCommand for plain-HTTP LAN hosting. */
@@ -147,7 +147,7 @@ function logAction(sn, msg, kind = "") {
   while (list.children.length > MAX_ACTIONS) list.removeChild(list.lastChild);
 }
 
-const MAX_REPORTS = 12;
+const MAX_REPORTS = 200;
 
 /* Append one per-board summary card to the REPORT area (newest on top):
  * counts, masked share, defect codes, and a big green PASS / red FAIL. */
@@ -334,8 +334,90 @@ function markChipResult(sn, pass) {
 function clearChipResults() {
   boards.forEach((sn) => {
     const chip = $("chip-" + sn);
-    if (chip) chip.classList.remove("res-pass", "res-fail");
+    if (!chip) return;
+    chip.classList.remove("res-pass", "res-fail");
+    const t = chip.querySelector(".chip-tools");
+    if (t) t.remove();
+    delete RESULTS[sn];
   });
+  RESULT_ORDER.length = 0;
+}
+
+/* ---- chip tools: full-screen / download of the final inspected image ---- */
+
+const RESULTS = {};      // sn -> final annotated image (masks + defect marks)
+const RESULT_ORDER = []; // eviction order, oldest first
+const MAX_RESULTS = 60;
+
+function storeResult(sn, canvas) {
+  RESULTS[sn] = canvas.toDataURL("image/jpeg", 0.85);
+  RESULT_ORDER.push(sn);
+  while (RESULT_ORDER.length > MAX_RESULTS) {
+    const old = RESULT_ORDER.shift();
+    delete RESULTS[old];
+    const chip = $("chip-" + old);
+    const t = chip && chip.querySelector(".chip-tools");
+    if (t) t.remove();
+  }
+}
+
+function ensureFsOverlay() {
+  let ov = document.getElementById("fsOverlay");
+  if (ov) return ov;
+  ov = document.createElement("div");
+  ov.className = "fs-overlay";
+  ov.id = "fsOverlay";
+  ov.hidden = true;
+  ov.innerHTML =
+    '<img alt="inspected board"><div class="fs-caption"></div>' +
+    '<button class="fs-close" title="Close">✕ close</button>';
+  const close = () => {
+    ov.hidden = true;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  };
+  ov.addEventListener("click", close);
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") close();
+  });
+  document.body.appendChild(ov);
+  return ov;
+}
+
+function showFullscreen(sn) {
+  if (!RESULTS[sn]) return;
+  const ov = ensureFsOverlay();
+  ov.querySelector("img").src = RESULTS[sn];
+  ov.querySelector(".fs-caption").textContent =
+    sn + " — inspected image (masking + defect marks)";
+  ov.hidden = false;
+  if (ov.requestFullscreen) ov.requestFullscreen().catch(() => {});
+}
+
+function downloadResult(sn) {
+  if (!RESULTS[sn]) return;
+  const a = document.createElement("a");
+  a.href = RESULTS[sn];
+  a.download = sn + "-inspected.jpg";
+  a.click();
+}
+
+function addChipTools(sn) {
+  const chip = $("chip-" + sn);
+  if (!chip || chip.querySelector(".chip-tools")) return;
+  const t = document.createElement("div");
+  t.className = "chip-tools";
+  t.innerHTML =
+    '<button class="ct-fs" title="Full screen — inspected image">⛶</button>' +
+    '<button class="ct-dl" title="Download inspected image">⇩</button>';
+  t.querySelector(".ct-fs").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    showFullscreen(sn);
+  });
+  t.querySelector(".ct-dl").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    downloadResult(sn);
+  });
+  chip.appendChild(t);
 }
 
 /* ---------------- drawing helpers ---------------- */
@@ -622,6 +704,8 @@ async function runBoard(idx) {
   await flashVerdict(panels[3], ann.defects.length === 0);
   addReport(ann, (100 * area) / (ann.width * ann.height));
   markChipResult(sn, ann.defects.length === 0);
+  storeResult(sn, panels[3].cv); // final canvas: masks + defect marks
+  addChipTools(sn);
   recordResult(ann);
   await sleep(STEP_DWELL_MS);
 

@@ -494,3 +494,63 @@ body {
 }
 .ah-entry:hover .copy-btn, .rp-entry:hover .copy-btn,
 .copy-btn:focus-visible { display: inline-block; }
+
+/* scrollable history: last 200 records, oldest reachable by scrolling */
+.ah-list, .rp-list { overflow-y: auto; padding-right: 2px; }
+
+/* ---------- chip tools: fullscreen / download of the inspected image ----- */
+
+.chip { position: relative; }
+.chip-tools {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: none;
+  gap: 3px;
+}
+.chip:hover .chip-tools { display: flex; }
+.chip-tools button {
+  background: rgba(10, 20, 35, .88);
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: .78rem;
+  line-height: 1.2;
+  padding: 1px 5px;
+  cursor: pointer;
+}
+.chip-tools button:hover { background: var(--navy-light); }
+
+.fs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(4, 8, 14, .94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+.fs-overlay[hidden] { display: none; }
+.fs-overlay img { max-width: 96vw; max-height: 92vh; object-fit: contain; }
+.fs-caption {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #cfe0f5;
+  font-size: .9rem;
+}
+.fs-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: 1px solid #cfe0f5;
+  color: #cfe0f5;
+  border-radius: 4px;
+  font-size: 1rem;
+  padding: 3px 10px;
+  cursor: pointer;
+}

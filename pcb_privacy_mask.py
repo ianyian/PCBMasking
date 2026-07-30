@@ -245,11 +245,17 @@ def detect_white_labels(img, min_area=2500) -> list:
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE,
                               cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15)))
     regions = []
+    H, W = gray.shape[:2]
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for c in contours:
         if cv2.contourArea(c) < min_area:
             continue
         x, y, w, h = cv2.boundingRect(c)
+        # An adhesive label is a small patch. A bright blob spanning a large
+        # fraction of the frame is the photo background, a connector, or the
+        # board itself — masking it would black out the whole image.
+        if w * h > 0.25 * W * H:
+            continue
         regions.append(Region("label", "white-label", (x, y, x + w, y + h), 0.6))
     return regions
 

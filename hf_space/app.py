@@ -87,8 +87,12 @@ with gr.Blocks(title="PCB Privacy Masking") as demo:
         headers=["type", "detector", "bbox (x1, y1, x2, y2)", "confidence",
                  "decoded"],
         label="Detected regions (audit view)", interactive=False)
-    gr.Button("Detect & Mask", variant="primary").click(
-        process, inputs=inp, outputs=[det, out, verdict, table])
+    with gr.Row():
+        gr.Button("Detect & Mask", variant="primary").click(
+            process, inputs=inp, outputs=[det, out, verdict, table])
+        gr.Button("Reset — next board").click(
+            lambda: (None, None, None, "", []),
+            outputs=[inp, det, out, verdict, table])
 
 if __name__ == "__main__":
     demo.launch()

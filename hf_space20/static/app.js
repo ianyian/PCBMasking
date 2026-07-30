@@ -103,8 +103,8 @@ const fmtTime = (d) =>
 
 /* ---------------- action log & report ---------------- */
 
-const MAX_ACTIONS = 22;
-const MAX_REPORTS = 12;
+const MAX_ACTIONS = 200;  // scrollable history
+const MAX_REPORTS = 200;
 
 async function copyText(text, btn) {
   let ok = false;
@@ -159,9 +159,9 @@ function addReport(sn, released, nRegions, pct) {
   e.innerHTML =
     `<div class="rp-head"><span class="rp-sn">${sn}</span>` +
     `<span class="rp-verdict ${released ? "pass" : "fail"}">` +
-    `${released ? "RELEASED" : "QUARANTINED"}</span></div>` +
+    `${released ? "PASS" : "QUARANTINED"}</span></div>` +
     `<div class="rp-detail">${detail}</div>`;
-  addCopyButton(e, `${sn} ${released ? "RELEASED" : "QUARANTINED"} — ${detail}`);
+  addCopyButton(e, `${sn} ${released ? "PASS" : "QUARANTINED"} — ${detail}`);
   list.insertBefore(e, list.firstChild);
   while (list.children.length > MAX_REPORTS) list.removeChild(list.lastChild);
 }
@@ -244,7 +244,7 @@ function updateChart() {
     yv.textContent = pct.toFixed(1) + " %";
     yv.classList.toggle("pass", pct >= 90);
     yv.classList.toggle("fail", pct < 90);
-    ys.textContent = `${relCnt} released / ${total} boards · target > 90 %`;
+    ys.textContent = `${relCnt} pass / ${total} boards · target > 90 %`;
   } else {
     yv.textContent = "—";
     yv.classList.remove("pass", "fail");
@@ -318,6 +318,83 @@ window.addEventListener("resize", centerQueue);
 function markChipResult(sn, released) {
   const chip = $("chip-" + sn);
   if (chip) chip.classList.add(released ? "res-pass" : "res-fail");
+}
+
+/* ---- chip tools: full-screen / download of the final inspected image ---- */
+
+const RESULTS = {};      // sn -> final annotated image (masked board)
+const RESULT_ORDER = []; // eviction order, oldest first
+const MAX_RESULTS = 60;
+
+function storeResult(sn, canvas) {
+  RESULTS[sn] = canvas.toDataURL("image/jpeg", 0.85);
+  RESULT_ORDER.push(sn);
+  while (RESULT_ORDER.length > MAX_RESULTS) {
+    const old = RESULT_ORDER.shift();
+    delete RESULTS[old];
+    const chip = $("chip-" + old);
+    const t = chip && chip.querySelector(".chip-tools");
+    if (t) t.remove();
+  }
+}
+
+function ensureFsOverlay() {
+  let ov = document.getElementById("fsOverlay");
+  if (ov) return ov;
+  ov = document.createElement("div");
+  ov.className = "fs-overlay";
+  ov.id = "fsOverlay";
+  ov.hidden = true;
+  ov.innerHTML =
+    '<img alt="inspected board"><div class="fs-caption"></div>' +
+    '<button class="fs-close" title="Close">✕ close</button>';
+  const close = () => {
+    ov.hidden = true;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  };
+  ov.addEventListener("click", close);
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") close();
+  });
+  document.body.appendChild(ov);
+  return ov;
+}
+
+function showFullscreen(sn) {
+  if (!RESULTS[sn]) return;
+  const ov = ensureFsOverlay();
+  ov.querySelector("img").src = RESULTS[sn];
+  ov.querySelector(".fs-caption").textContent =
+    sn + " — inspected image (masked; defect marks once the model is enabled)";
+  ov.hidden = false;
+  if (ov.requestFullscreen) ov.requestFullscreen().catch(() => {});
+}
+
+function downloadResult(sn) {
+  if (!RESULTS[sn]) return;
+  const a = document.createElement("a");
+  a.href = RESULTS[sn];
+  a.download = sn + "-inspected.jpg";
+  a.click();
+}
+
+function addChipTools(sn) {
+  const chip = $("chip-" + sn);
+  if (!chip || chip.querySelector(".chip-tools")) return;
+  const t = document.createElement("div");
+  t.className = "chip-tools";
+  t.innerHTML =
+    '<button class="ct-fs" title="Full screen — inspected image">⛶</button>' +
+    '<button class="ct-dl" title="Download inspected image">⇩</button>';
+  t.querySelector(".ct-fs").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    showFullscreen(sn);
+  });
+  t.querySelector(".ct-dl").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    downloadResult(sn);
+  });
+  chip.appendChild(t);
 }
 
 (function initUpload() {
@@ -396,21 +473,35 @@ function clearPanel(p) {
   p.ctx.clearRect(0, 0, 4, 4);
   p.sn.textContent = "—";
   p.info.innerHTML = '<p class="placeholder">Idle</p>';
-  p.el.classList.remove("active", "frame-blink");
+  p.el.classList.remove("active", "frame-blink", "working");
   p.el.querySelector(".panel-head")
-      .classList.remove("verdict-pass", "verdict-fail");
+      .classList.remove("verdict-pass", "verdict-fail", "verdict-skip");
 }
 
 /* ---------------- blink effects ---------------- */
 
-async function blinkFrame(p) {
+/* Real processing takes long, so the active step's frame keeps blinking
+ * yellow (CSS animation) for the whole step, then restores when done. */
+function startWork(p) {
+  p.el.classList.remove("active");
+  p.el.classList.add("working");
+}
+
+function endWork(p) {
+  p.el.classList.remove("working");
+  p.el.classList.add("active");
+}
+
+/* Amber SKIP flash for step 4 while no defect model is enabled. */
+async function flashSkip(p) {
+  const head = p.el.querySelector(".panel-head");
   for (let i = 0; i < BLINK_COUNT; i++) {
-    p.el.classList.add("frame-blink");
+    head.classList.add("verdict-skip");
     await sleep(BLINK_ON_MS);
-    p.el.classList.remove("frame-blink");
+    head.classList.remove("verdict-skip");
     await sleep(BLINK_OFF_MS);
   }
-  p.el.classList.add("active");
+  head.classList.add("verdict-skip");
 }
 
 async function flashVerdict(p, pass) {
@@ -458,13 +549,24 @@ function typeCounts(regions) {
     .join("");
 }
 
+/* True union coverage: rasterise the padded boxes onto a small offscreen
+ * canvas and count pixels, so overlapping regions are not double-counted. */
 function maskedPct(regions, pad, w, h) {
-  let area = 0;
+  const scale = 300 / w;
+  const oc = document.createElement("canvas");
+  oc.width = 300;
+  oc.height = Math.max(1, Math.round(h * scale));
+  const ctx = oc.getContext("2d");
+  ctx.fillStyle = "#fff";
   for (const r of regions) {
     const [x1, y1, x2, y2] = r.bbox;
-    area += (x2 - x1 + 2 * pad) * (y2 - y1 + 2 * pad);
+    ctx.fillRect((x1 - pad) * scale, (y1 - pad) * scale,
+                 (x2 - x1 + 2 * pad) * scale, (y2 - y1 + 2 * pad) * scale);
   }
-  return Math.min(100, (100 * area) / (w * h));
+  const px = ctx.getImageData(0, 0, oc.width, oc.height).data;
+  let on = 0;
+  for (let i = 3; i < px.length; i += 4) if (px[i] > 0) on++;
+  return (100 * on) / (oc.width * oc.height);
 }
 
 /* ---------------- the show ---------------- */
@@ -490,7 +592,8 @@ async function runBoard(idx) {
   status.textContent = `Step 1 — loading board ${sn}`;
   const start = new Date();
   logAction(sn, `step 1 started — loading uploaded image ${board.name}`);
-  await blinkFrame(panels[0]);
+  startWork(panels[0]);
+  await sleep(900);
   drawBase(panels[0], img);
   $("stamp1").textContent = `${sn} · start ${fmtTime(start)}`;
   panels[0].info.innerHTML =
@@ -504,12 +607,13 @@ async function runBoard(idx) {
      <p class="k">Image uploaded manually by the operator. Forwarding to
         sensitive-object detection…</p>`;
   logAction(sn, `step 1 finished — image loaded, ${img.naturalWidth} × ${img.naturalHeight} px`);
+  endWork(panels[0]);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 2: real detection on the server ---- */
   status.textContent = `Step 2 — detecting sensitive objects on ${sn} (real ensemble, please wait)`;
   logAction(sn, `step 2 started — server ensemble scan (codes, text, logos)`);
-  await blinkFrame(panels[1]);
+  startWork(panels[1]);
   drawBase(panels[1], img);
   setProcessing(panels[1],
     "Running detector ensemble on server — barcodes, QR, DataMatrix, OCR, logos");
@@ -553,12 +657,13 @@ async function runBoard(idx) {
         ${res.detectors.join(", ")}.</p>
      <p><span class="k">Processing time:</span> ${(ms2 / 1000).toFixed(1)} s</p>`;
   logAction(sn, `step 2 finished — results displayed`);
+  endWork(panels[1]);
   await sleep(STEP_DWELL_MS);
 
   /* ---- STEP 3: masking ---- */
   status.textContent = `Step 3 — masking sensitive areas on ${sn}`;
   logAction(sn, `step 3 started — masking ${regions.length} region(s)`);
-  await blinkFrame(panels[2]);
+  startWork(panels[2]);
   drawDetectionBoxes(panels[2], img, regions);
   setProcessing(panels[2], "Applying irreversible black fill");
   await sleep(600);
@@ -577,44 +682,56 @@ async function runBoard(idx) {
         (server: ${(res.mask_ms / 1000).toFixed(2)} s)</p>
      <p class="k">Image is now privacy-safe for ML training and export.</p>`;
   logAction(sn, `step 3 finished — ${pct.toFixed(1)} % of board masked`);
+  endWork(panels[2]);
   await sleep(STEP_DWELL_MS);
 
-  /* ---- STEP 4: release verification (fail-closed re-scan) ---- */
-  status.textContent = `Step 4 — release verification on ${sn}`;
-  logAction(sn, `step 4 started — fail-closed re-scan of the masked image`);
-  await blinkFrame(panels[3]);
+  /* ---- STEP 4: defect detection — SKIPPED (model not enabled yet).
+   * A skipped defect check counts as PASS for the yield; the fail-closed
+   * masking verification can still quarantine the board. ---- */
+  status.textContent = `Step 4 — defect detection on ${sn}`;
+  logAction(sn, `step 4 started — defect detection`);
+  startWork(panels[3]);
   drawMasks(panels[3], img, regions, pad);
-  setProcessing(panels[3], "Re-scanning masked image for surviving codes / text");
-  await sleep(800);
+  setProcessing(panels[3], "Checking defect-detection model availability");
+  await sleep(900);
   const released = res.verified;
   panels[3].info.innerHTML =
-    `<h4>Verification: ${released
+    `<h4>Defect detection: <span class="badge-skip">SKIPPED</span></h4>
+     <p class="k">No defect-detection model is enabled in this deployment
+        yet — the step is skipped and counted as <b>PASS</b> for the
+        yield.</p>
+     <p><span class="k">Release verification:</span> ${released
         ? '<span class="badge-pass">RELEASED</span>'
-        : '<span class="badge-fail">QUARANTINED</span>'}</h4>
-     <p class="k">${released
-        ? "The masked image was re-scanned by the decoder + OCR ensemble; " +
-          "nothing sensitive is still detectable. Safe to export."
-        : "Sensitive content is still detectable after masking. The image " +
-          "is quarantined — do not export."}</p>
-     <p><span class="k">Verification time:</span>
-        ${(res.verify_ms / 1000).toFixed(1)} s</p>
-     <p class="k">Defect detection (AI model) is not enabled in this
-        deployment yet.</p>`;
-  logAction(sn, `flashing step-4 header ` +
-            (released ? `green (RELEASED)` : `red (QUARANTINED)`) + ` 3×`);
-  await flashVerdict(panels[3], released);
+        : '<span class="badge-fail">QUARANTINED</span>'}
+        <span class="k">(fail-closed re-scan of the masked image,
+        ${(res.verify_ms / 1000).toFixed(1)} s)</span></p>
+     ${released ? "" :
+       `<p class="k">Sensitive content is still detectable after masking —
+        do not export this image.</p>`}`;
+  endWork(panels[3]);
+  logAction(sn, `defect detection <b>SKIPPED</b> — model not enabled, counted as pass`);
+  if (released) {
+    logAction(sn, `flashing step-4 header amber (SKIP) 3×`);
+    await flashSkip(panels[3]);
+  } else {
+    logAction(sn, `flashing step-4 header red (QUARANTINED) 3×`);
+    await flashVerdict(panels[3], false);
+  }
   logAction(sn, `inspection complete — ` +
-            (released ? `<b>RELEASED</b>` : `<b>QUARANTINED</b>`),
+            (released ? `<b>PASS</b> (defect check skipped)`
+                      : `<b>QUARANTINED</b>`),
             released ? "pass" : "fail");
   addReport(sn, released, regions.length, pct);
   markChipResult(sn, released);
+  storeResult(sn, panels[3].cv); // final canvas: masked board
+  addChipTools(sn);
   recordResult(released, regions);
   await sleep(STEP_DWELL_MS);
 
   board.status = "done";
   board.released = released;
   status.textContent =
-    `Board ${sn} complete — ${released ? "RELEASED" : "QUARANTINED"}` +
+    `Board ${sn} complete — ${released ? "PASS (defect check skipped)" : "QUARANTINED"}` +
     (queue.some((b) => b.status === "pending")
       ? " · next board starting" : " · waiting for uploads");
 }
@@ -636,3 +753,31 @@ async function pump() {
   updateQueue();
   pump();
 }
+
+/* ---------------- bundled sample board (auto-queued at startup) --------- */
+
+(async function loadSample() {
+  try {
+    const r = await fetch("samples/sample-board.png");
+    if (!r.ok) return;
+    const blob = await r.blob();
+    const dataUrl = await new Promise((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.readAsDataURL(blob);
+    });
+    boardSeq++;
+    const item = {
+      sn: "B-" + String(boardSeq).padStart(3, "0"),
+      name: "sample-board.png",
+      dataUrl,
+      status: "pending",
+      released: null,
+    };
+    queue.push(item);
+    addChip(item);
+    updateQueue();
+    logAction(item.sn, "bundled sample board queued for a quick first test");
+    pump();
+  } catch (e) { /* no sample bundled — start empty */ }
+})();

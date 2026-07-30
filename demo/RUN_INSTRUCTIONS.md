@@ -74,7 +74,8 @@ above and browse to `http://<server-ip>:8000` from the display machine.
   Log**: a timestamped history of every action in the format
   `H:MM:SS.mmm AM [PCB-006] message` (12-hour clock), newest at the top.
   Log entries are neutral navy — only the final result entry per board is
-  colored, green for a good board and red for a bad one.
+  colored, green for a good board and red for a bad one. Both pages keep
+  the last 200 records and scroll, so earlier records stay reachable.
 - **Yield + defect Pareto (right edge, bottom ~30%)** — always covers the
   last 60 minutes. The yield is a big number: total pass boards ÷ total
   boards, green when ≥ 90 %, red below. Under it a Chart.js **Pareto
@@ -104,7 +105,7 @@ browser page — no server restart needed):
 | `BLINK_ON_MS` / `BLINK_OFF_MS` | 300 / 220 | blink speed |
 | `STEP_DWELL_MS` | 2000 | pause after each step (ms) |
 | `PROCESS_MS` | 1400 | simulated processing phase (ms) |
-| `MAX_ACTIONS` | 22 | entries kept in the action log |
+| `MAX_ACTIONS` | 200 | entries kept in the action log (scroll for older ones) |
 
 Dataset size or content: re-run `python demo/generate_dataset.py`
 (`--count N` for a different number of boards), then restart `app.py`

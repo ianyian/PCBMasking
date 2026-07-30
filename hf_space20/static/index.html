@@ -40,14 +40,14 @@
 </header>
 
 <section class="queue-wrap">
+  <div class="queue-viewport">
+    <div class="queue-track" id="queueTrack"></div>
+  </div>
   <div class="upload-chip" id="uploadChip" role="button" tabindex="0"
        title="Upload PCB board image(s)">
     <input type="file" id="fileInput" accept="image/*" multiple hidden>
     <div class="plus">+</div>
     <div class="chip-sn">UPLOAD</div>
-  </div>
-  <div class="queue-viewport">
-    <div class="queue-track" id="queueTrack"></div>
   </div>
 </section>
 
@@ -83,7 +83,7 @@
   <section class="panel" id="panel4">
     <div class="panel-head">
       <span class="step-no">STEP 4</span>
-      <span class="step-title">Release verification</span>
+      <span class="step-title">Defect detection</span>
       <span class="sn-tag" id="sn4">—</span>
     </div>
     <div class="panel-body">
