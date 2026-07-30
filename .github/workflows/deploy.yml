@@ -14,11 +14,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           lfs: true
 
-      - name: Push to Hugging Face
+      # Push a single-commit SNAPSHOT of the current tree, not the full git
+      # history: the repo's early history contains a >10 MiB .venv binary
+      # that Hugging Face's pre-receive hook rejects. The Space only needs
+      # the current files anyway.
+      - name: Push snapshot to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push --force https://YianXingJian:$HF_TOKEN@huggingface.co/spaces/YianXingJian/PCBMasking main
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan hf-deploy
+          git add -A
+          git commit -m "Deploy snapshot of ${GITHUB_SHA::7}"
+          git push --force https://YianXingJian:$HF_TOKEN@huggingface.co/spaces/YianXingJian/PCBMasking hf-deploy:main
