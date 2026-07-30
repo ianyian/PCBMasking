@@ -16,23 +16,22 @@ jobs:
         with:
           fetch-depth: 1
 
-      # The Space runs ONLY the production pipeline. The demo/, docs/ and
-      # dataset assets stay on GitHub — they are demo material, and HF's
-      # pre-receive hook rejects plain-git binary files anyway, so every
-      # binary shipped to the Space is tracked with Git LFS.
-      - name: Assemble Space snapshot
-        run: |
-          mkdir -p /tmp/hfdeploy
-          cp -r hf_space/. /tmp/hfdeploy/
-          cp pcb_privacy_mask.py /tmp/hfdeploy/
-          mkdir -p /tmp/hfdeploy/templates
-          cp -r templates/logos /tmp/hfdeploy/templates/logos
+      # Both Spaces receive single-commit SNAPSHOTS of only their own
+      # files (the repo's early git history contains a >10 MiB blob that
+      # HF's pre-receive hook rejects, and demo/docs assets stay on
+      # GitHub). Binaries are tracked with Git LFS.
 
-      - name: Push snapshot to Hugging Face
+      # Space 1 — YianXingJian/PCBMasking (Gradio, single-board form)
+      - name: Assemble + push Gradio Space (PCBMasking)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          cd /tmp/hfdeploy
+          mkdir -p /tmp/hf1
+          cp -r hf_space/. /tmp/hf1/
+          cp pcb_privacy_mask.py /tmp/hf1/
+          mkdir -p /tmp/hf1/templates
+          cp -r templates/logos /tmp/hf1/templates/logos
+          cd /tmp/hf1
           git init -b main
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
@@ -41,3 +40,23 @@ jobs:
           git add -A
           git commit -m "Deploy snapshot of ${GITHUB_SHA::7}"
           git push --force https://YianXingJian:$HF_TOKEN@huggingface.co/spaces/YianXingJian/PCBMasking main
+
+      # Space 2 — YianXingJian/PCBMasking20 (Docker, upload console)
+      - name: Assemble + push Docker console (PCBMasking20)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          mkdir -p /tmp/hf2
+          cp -r hf_space20/. /tmp/hf2/
+          cp pcb_privacy_mask.py /tmp/hf2/
+          mkdir -p /tmp/hf2/templates
+          cp -r templates/logos /tmp/hf2/templates/logos
+          cd /tmp/hf2
+          git init -b main
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git lfs install --local
+          git lfs track "*.png" "*.jpg" "*.jpeg" "*.bmp"
+          git add -A
+          git commit -m "Deploy snapshot of ${GITHUB_SHA::7}"
+          git push --force https://YianXingJian:$HF_TOKEN@huggingface.co/spaces/YianXingJian/PCBMasking20 main

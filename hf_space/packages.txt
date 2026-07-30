@@ -1,0 +1,2 @@
+libzbar0
+libdmtx0b
