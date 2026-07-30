@@ -222,9 +222,15 @@ def detect_barcode_gradient(img) -> list:
     closed = cv2.erode(closed, None, iterations=2)
     closed = cv2.dilate(closed, None, iterations=6)
     regions = []
+    H, W = gray.shape[:2]
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for c in contours:
         x, y, w, h = cv2.boundingRect(c)
+        # A real 1-D barcode is a compact stripe block; reject blobs that span
+        # a large fraction of the board (busy trace areas merged together) —
+        # they black out most of the image instead of a label.
+        if w > 0.55 * W or h > 0.45 * H:
+            continue
         if w > 40 and h > 12 and w / max(h, 1) > 1.5:
             regions.append(Region("barcode", "gradient", (x, y, x + w, y + h), 0.5))
     return regions
