@@ -82,17 +82,17 @@ with gr.Blocks(title="PCB Privacy Masking") as demo:
         inp = gr.Image(label="Board image", type="numpy")
         det = gr.Image(label="Detections", type="numpy")
         out = gr.Image(label="Masked output", type="numpy")
+    with gr.Row():
+        btn_run = gr.Button("Detect & Mask", variant="primary")
+        btn_reset = gr.Button("Reset — next board")
     verdict = gr.Textbox(label="Verification result", interactive=False)
     table = gr.Dataframe(
         headers=["type", "detector", "bbox (x1, y1, x2, y2)", "confidence",
                  "decoded"],
         label="Detected regions (audit view)", interactive=False)
-    with gr.Row():
-        gr.Button("Detect & Mask", variant="primary").click(
-            process, inputs=inp, outputs=[det, out, verdict, table])
-        gr.Button("Reset — next board").click(
-            lambda: (None, None, None, "", []),
-            outputs=[inp, det, out, verdict, table])
+    btn_run.click(process, inputs=inp, outputs=[det, out, verdict, table])
+    btn_reset.click(lambda: (None, None, None, "", []),
+                    outputs=[inp, det, out, verdict, table])
 
 if __name__ == "__main__":
     demo.launch()

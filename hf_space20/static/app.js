@@ -292,6 +292,15 @@ function addChip(item) {
   chip.innerHTML =
     `<img src="${item.dataUrl}" alt="${item.sn}">` +
     `<div class="chip-sn">${item.sn}</div>`;
+  // a "waiting" board (the bundled sample) starts only when clicked
+  chip.addEventListener("click", () => {
+    if (item.status === "waiting") {
+      item.status = "pending";
+      chip.classList.remove("waiting");
+      logAction(item.sn, "sample board started by operator click");
+      pump();
+    }
+  });
   track.appendChild(chip);
 }
 
@@ -771,13 +780,16 @@ async function pump() {
       sn: "B-" + String(boardSeq).padStart(3, "0"),
       name: "sample-board.png",
       dataUrl,
-      status: "pending",
+      status: "waiting", // does NOT run by itself — starts on click
       released: null,
     };
     queue.push(item);
     addChip(item);
+    $("chip-" + item.sn).classList.add("waiting");
     updateQueue();
-    logAction(item.sn, "bundled sample board queued for a quick first test");
-    pump();
+    logAction(item.sn,
+      "sample board ready — click its picture to start the inspection");
+    $("statusMsg").textContent =
+      "Sample board ready — click its picture in the top bar to start, or upload your own";
   } catch (e) { /* no sample bundled — start empty */ }
 })();
