@@ -9,6 +9,15 @@ import cv2
 import numpy as np
 import gradio as gr
 
+# On ZeroGPU hardware HF requires at least one @spaces.GPU function; on
+# CPU hardware the `spaces` package is absent and the decorator is a no-op.
+try:
+    import spaces
+    gpu_task = spaces.GPU
+except ImportError:
+    def gpu_task(fn):
+        return fn
+
 from pcb_privacy_mask import PrivacyMasker, apply_masks
 
 CONFIG = {
@@ -30,6 +39,7 @@ BOX_COLORS = {  # BGR
 }
 
 
+@gpu_task
 def process(image):
     if image is None:
         return None, None, "Upload a board image first.", []
