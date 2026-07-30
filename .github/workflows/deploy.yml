@@ -23,8 +23,7 @@ jobs:
       - name: Assemble Space snapshot
         run: |
           mkdir -p /tmp/hfdeploy
-          cp hf_space/README.md hf_space/app.py hf_space/requirements.txt \
-             hf_space/packages.txt /tmp/hfdeploy/
+          cp -r hf_space/. /tmp/hfdeploy/
           cp pcb_privacy_mask.py /tmp/hfdeploy/
           mkdir -p /tmp/hfdeploy/templates
           cp -r templates/logos /tmp/hfdeploy/templates/logos
