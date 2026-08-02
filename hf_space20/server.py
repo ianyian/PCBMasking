@@ -30,6 +30,16 @@ print("active detectors:", ", ".join(MASKER.active_detectors()))
 app = FastAPI(title="PCB Privacy Masking")
 
 
+@app.middleware("http")
+async def no_stale_cache(request, call_next):
+    """The console's HTML/JS/CSS changes on every deploy; force browsers to
+    revalidate so users never run a stale cached front end."""
+    response = await call_next(request)
+    if request.url.path.endswith((".html", ".js", ".css", "/")):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @app.post("/api/process")
 async def process(file: UploadFile):
     data = await file.read()
