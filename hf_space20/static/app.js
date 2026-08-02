@@ -85,6 +85,33 @@ const panels = [1, 2, 3, 4].map((n) => ({
   apply();
 })();
 
+/* ---------------- presentation pause ---------------- */
+
+/* Pause holds the show at the NEXT step boundary (a running step always
+ * finishes), shows a semi-transparent banner that doesn't block the view,
+ * and resumes on demand. */
+let paused = false;
+const pauseWaiters = [];
+
+function pauseGate() {
+  if (!paused) return Promise.resolve();
+  return new Promise((r) => pauseWaiters.push(r));
+}
+
+(function initPause() {
+  const btn = $("pauseBtn");
+  const banner = $("pauseBanner");
+  const resume = $("resumeBtn");
+  function set(on) {
+    paused = on;
+    banner.hidden = !on;
+    btn.innerHTML = on ? "&#9654; Resume" : "&#9208; Pause";
+    if (!on) while (pauseWaiters.length) pauseWaiters.shift()();
+  }
+  btn.addEventListener("click", () => set(!paused));
+  resume.addEventListener("click", () => set(false));
+})();
+
 /* ---------------- clock ---------------- */
 
 function tickClock() {
@@ -597,6 +624,8 @@ async function runBoard(idx) {
 
   const img = await loadImage(board.dataUrl);
 
+  await pauseGate();
+
   /* ---- STEP 1: load ---- */
   status.textContent = `Step 1 — loading board ${sn}`;
   const start = new Date();
@@ -618,6 +647,8 @@ async function runBoard(idx) {
   logAction(sn, `step 1 finished — image loaded, ${img.naturalWidth} × ${img.naturalHeight} px`);
   endWork(panels[0]);
   await sleep(STEP_DWELL_MS);
+
+  await pauseGate();
 
   /* ---- STEP 2: real detection on the server ---- */
   status.textContent = `Step 2 — detecting sensitive objects on ${sn} (real ensemble, please wait)`;
@@ -669,6 +700,8 @@ async function runBoard(idx) {
   endWork(panels[1]);
   await sleep(STEP_DWELL_MS);
 
+  await pauseGate();
+
   /* ---- STEP 3: masking ---- */
   status.textContent = `Step 3 — masking sensitive areas on ${sn}`;
   logAction(sn, `step 3 started — masking ${regions.length} region(s)`);
@@ -693,6 +726,8 @@ async function runBoard(idx) {
   logAction(sn, `step 3 finished — ${pct.toFixed(1)} % of board masked`);
   endWork(panels[2]);
   await sleep(STEP_DWELL_MS);
+
+  await pauseGate();
 
   /* ---- STEP 4: defect detection — SKIPPED (model not enabled yet).
    * A skipped defect check counts as PASS for the yield; the fail-closed

@@ -16,6 +16,8 @@
   </div>
   <div class="topbar-right">
     <div class="clock" id="clock">--:--:--</div>
+    <button id="pauseBtn" class="settings-btn pause-btn"
+            title="Pause at the next step boundary">&#9208; Pause</button>
     <div class="settings">
       <button id="settingsBtn" class="settings-btn" title="Settings"
               aria-label="Settings">&#9881;</button>
@@ -125,6 +127,11 @@
   </div>
   <div class="chart-box"><canvas id="trendChart"></canvas></div>
 </aside>
+
+<div class="pause-banner" id="pauseBanner" hidden>
+  <span>&#9208; PAUSED — the show holds at the next step boundary.</span>
+  <button id="resumeBtn">&#9654; Resume</button>
+</div>
 
 <footer class="statusbar">
   <span id="statusMsg">Ready — waiting for uploads</span>

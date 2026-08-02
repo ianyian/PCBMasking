@@ -85,6 +85,33 @@ let cycle = 0;
   apply();
 })();
 
+/* ---------------- presentation pause ---------------- */
+
+/* Pause holds the show at the NEXT step boundary (a running step always
+ * finishes), shows a semi-transparent banner that doesn't block the view,
+ * and resumes on demand. */
+let paused = false;
+const pauseWaiters = [];
+
+function pauseGate() {
+  if (!paused) return Promise.resolve();
+  return new Promise((r) => pauseWaiters.push(r));
+}
+
+(function initPause() {
+  const btn = $("pauseBtn");
+  const banner = $("pauseBanner");
+  const resume = $("resumeBtn");
+  function set(on) {
+    paused = on;
+    banner.hidden = !on;
+    btn.innerHTML = on ? "&#9654; Resume" : "&#9208; Pause";
+    if (!on) while (pauseWaiters.length) pauseWaiters.shift()();
+  }
+  btn.addEventListener("click", () => set(!paused));
+  resume.addEventListener("click", () => set(false));
+})();
+
 /* ---------------- clock ---------------- */
 
 function tickClock() {
@@ -626,6 +653,8 @@ async function runBoard(idx) {
     loadImage(`/dataset/raw/${sn}.png`),
   ]);
 
+  await pauseGate();
+
   /* ---- STEP 1: inspection / load ---- */
   status.textContent = `Step 1 — loading board ${sn}`;
   const start = new Date();
@@ -636,6 +665,8 @@ async function runBoard(idx) {
   step1Info(panels[0], ann, start);
   logAction(sn, `step 1 finished — image loaded, ${ann.width} × ${ann.height} px`);
   await sleep(STEP_DWELL_MS);
+
+  await pauseGate();
 
   /* ---- STEP 2: sensitive-object detection ---- */
   status.textContent = `Step 2 — detecting sensitive objects on ${sn}`;
@@ -657,6 +688,8 @@ async function runBoard(idx) {
   logAction(sn, `step 2 finished — results displayed`);
   await sleep(STEP_DWELL_MS);
 
+  await pauseGate();
+
   /* ---- STEP 3: masking ---- */
   status.textContent = `Step 3 — masking sensitive areas on ${sn}`;
   logAction(sn, `step 3 started — masking ${ann.labels.length} region(s)`);
@@ -676,6 +709,8 @@ async function runBoard(idx) {
   step3Info(panels[2], ann, area, (100 * area) / (ann.width * ann.height), ms3);
   logAction(sn, `step 3 finished — ${((100 * area) / (ann.width * ann.height)).toFixed(1)} % of board masked in ${(ms3 / 1000).toFixed(2)} s`);
   await sleep(STEP_DWELL_MS);
+
+  await pauseGate();
 
   /* ---- STEP 4: defect detection ---- */
   status.textContent = `Step 4 — defect detection on ${sn}`;

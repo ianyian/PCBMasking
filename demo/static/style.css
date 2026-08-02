@@ -554,3 +554,39 @@ body {
   padding: 3px 10px;
   cursor: pointer;
 }
+
+/* ---------- presentation pause ---------- */
+
+.pause-btn { font-size: .85rem; }
+
+/* semi-transparent banner: informs without blocking the view; only the
+ * banner itself takes pointer events */
+.pause-banner {
+  position: fixed;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(14, 35, 64, .68);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .45);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: .95rem;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .35);
+}
+.pause-banner[hidden] { display: none; }
+.pause-banner button {
+  background: var(--accent);
+  border: none;
+  color: #14243c;
+  font-weight: 800;
+  padding: 5px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pause-banner button:hover { filter: brightness(1.1); }
