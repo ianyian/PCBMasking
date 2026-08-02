@@ -112,6 +112,35 @@ akhatova (duplicate). Park micropcb for background images later.**
 
 ---
 
+## 3b. Full dataset landscape (comparison table)
+
+Clarification first: **HRIPCB is the original academic dataset** (Peking
+University HRI Open Lab, paper: "HRIPCB: a challenging dataset for PCB
+defects detection and classification"). The two Kaggle sets *akhatova*
+and *norbertelter* are **mirrors of HRIPCB** — norbertelter's mirror is
+simply HRIPCB repackaged in YOLO format. So "train on norbertelter" and
+"train on HRIPCB" mean the same data.
+
+Training sequence: **Run 1** = HRIPCB alone (norbertelter mirror) →
+baseline model. **Run 2** = start from the Run-1 weights and retrain on
+**HRIPCB + DsPCBSD+ combined** (HRIPCB stays in the mix; DsPCBSD+ is
+added). **Run 3** = fine-tune the best model on 100–300 labeled photos of
+your own boards.
+
+| Dataset | Total pictures | Source (download) | Advantage | Disadvantage | Use in this project | Others / notes |
+|---|---|---|---|---|---|---|
+| **HRIPCB** via norbertelter mirror | ~10k YOLO-ready images (from 693 originals + augmented copies, 6 classes) | [kaggle.com/datasets/norbertelter/pcb-defect-dataset](https://www.kaggle.com/datasets/norbertelter/pcb-defect-dataset) (original: PKU HRI Open Lab) | Exactly our 6-class taxonomy; YOLO format + clean splits; zero conversion; the community benchmark | Only ~10 bare template boards; clean studio imagery; weak on populated-board photos | **Y — Run 1 (baseline)** | Same data as akhatova; academic-use license — verify before commercial use |
+| **akhatova/pcb-defects** (HRIPCB mirror) | ~1,386 (693 + rotated), VOC XML | [kaggle.com/datasets/akhatova/pcb-defects](https://www.kaggle.com/datasets/akhatova/pcb-defects) | Same content as above | Duplicate of norbertelter; VOC→YOLO conversion needed; mixing both causes train/val leakage | **N — duplicate** | Keep only as a cross-check reference |
+| **DsPCBSD+** | 10,259 images / 20,276 hand-annotated defects, 9 classes | [Scientific Data paper + open data links](https://www.nature.com/articles/s41597-024-03656-8) | Largest open real-image PCB defect set; purpose-built for DL detection; adds variety HRIPCB lacks | 9-class taxonomy needs mapping onto ours (extras: scratch, pin-hole…); still bare boards | **Y — Run 2 (added to HRIPCB)** | Highest-value public addition; published 2024 with the data openly released |
+| **DeepPCB** | 1,500 template/test pairs, 640×640, 6 classes | [github.com/tangsanli5201/DeepPCB](https://github.com/tangsanli5201/DeepPCB) or [Roboflow mirror](https://universe.roboflow.com/pcbdefectsyolooic/deeppcb-4dhir-dwgtd) | Well-known benchmark; free; YOLO mirror exists | **Binarized** linear-scan images — looks nothing like photos; can *hurt* photo performance | **N for the main mix** (optional experiment only) | Class names differ slightly (pin-hole vs missing_hole) |
+| **Roboflow "Bare PCB defects"** | ~9,666 images, 8 classes | [universe.roboflow.com/bare-pcb-defects/obj-detection-pcb-defects-yolov8](https://universe.roboflow.com/bare-pcb-defects/obj-detection-pcb-defects-yolov8) | One-click YOLO export; adds scratch / pin-hole / false-copper classes | Community-curated (quality varies); partially overlaps HRIPCB — dedup needed | **Optional — Run 2 supplement** | Check per-image licenses on Roboflow |
+| **SolDef_AI** | 1,150 soldered-SMT images, 3 viewpoints | [kaggle.com/datasets/mauriziocalabrese/soldef-ai-pcb-dataset-for-defect-detection](https://www.kaggle.com/datasets/mauriziocalabrese/soldef-ai-pcb-dataset-for-defect-detection) | Only set covering **solder-joint defects on populated boards** — closest to HF20 uploads | Different defect family; small; mixing into the bare-board model degrades both | **Y — but as a separate later model/class-set (Run 4)** | Bridging / insufficient-solder classes complement, not replace, our 6 |
+| **AOI-BarePCB** | n/a (paper dataset) | via authors of [SME-YOLO paper](https://arxiv.org/pdf/2601.11402) | Captured by a real production AOI machine | Not openly downloadable; only 3 defect types | **N — not accessible** | Watch for a public release |
+| **micropcb-images** | ~8,000+, 13 board types | [kaggle.com/datasets/frettapper/micropcb-images](https://www.kaggle.com/datasets/frettapper/micropcb-images) | Many angles/perspectives of populated boards | **No defect labels at all** (board-classification set) | **N for training** | Optional: negative/background images in Run 2+ |
+| **Your own boards** (to collect) | target 100–300 labeled photos | your camera + LabelImg / CVAT / Roboflow labeling | Matches the real HF20 input exactly — the decisive dataset | Must be photographed and labeled by you | **Y — Run 3 (final fine-tune)** | The single biggest accuracy lever for production |
+
+---
+
 ## 4. Training workflow (VS Code + Colab + Google Drive)
 
 Your planned setup is the standard, proven one. The flow:
